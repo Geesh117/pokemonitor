@@ -1,0 +1,232 @@
+{
+  "telegram": {
+    "bot_token": "SET_VIA_ENV_VAR_TELEGRAM_BOT_TOKEN",
+    "chat_id": "SET_VIA_ENV_VAR_TELEGRAM_CHAT_ID"
+  },
+  "intervals": {
+    "retail_min_seconds": 60,
+    "retail_max_seconds": 90,
+    "news_min_seconds": 300,
+    "news_max_seconds": 600,
+    "health_check_seconds": 3600,
+    "daily_digest_hour_est": 9,
+    "stale_site_alert_minutes": 10
+  },
+  "delays": {
+    "between_requests_min": 3,
+    "between_requests_max": 8
+  },
+  "alert_cooldown_hours": 2,
+  "price_sanity": {
+    "booster_box_min_cad": 10,
+    "booster_box_max_cad": 1000
+  },
+  "keywords": {
+    "whitelist": [
+      "pokemon", "pokémon", "one piece", "tcg", "booster",
+      "etb", "elite trainer", "tin", "blister", "starter deck",
+      "promo", "sealed", "trainer box", "scarlet", "violet",
+      "sword", "shield", "journey", "op-", "eb01", "eb02"
+    ],
+    "booster_box_keywords": ["booster box", "booster bundle", "36 pack", "36pack"]
+  },
+  "proxies": [],
+  "sites": {
+    "walmart_ca": {
+      "enabled": true,
+      "urls": [
+        "https://www.walmart.ca/en/c/kp/pokemon-cards",
+        "https://www.walmart.ca/en/c/kp/one-piece-card-game",
+        "https://www.walmart.ca/search?q=pokemon+booster+box",
+        "https://www.walmart.ca/search?q=one+piece+tcg"
+      ],
+      "type": "playwright",
+      "name": "Walmart Canada"
+    },
+    "costco_ca": {
+      "enabled": true,
+      "urls": [
+        "https://www.costco.ca/s?keyword=pokemon+cards",
+        "https://www.costco.ca/s?keyword=one+piece+tcg"
+      ],
+      "type": "playwright",
+      "name": "Costco Canada"
+    },
+    "bestbuy_ca": {
+      "enabled": true,
+      "urls": [
+        "https://www.bestbuy.ca/en-ca/category/pokemon-tcg/10857174",
+        "https://www.bestbuy.ca/en-ca/shop/video-games/pokemon-trading-card-games",
+        "https://www.bestbuy.ca/en-ca/search?query=one+piece+card+game"
+      ],
+      "type": "bestbuy",
+      "name": "Best Buy Canada"
+    },
+    "amazon_ca": {
+      "enabled": true,
+      "urls": [
+        "https://www.amazon.ca/s?k=pokemon+booster+box&rh=p_6%3AA3DWYIK6Y9EEQB",
+        "https://www.amazon.ca/s?k=one+piece+tcg&rh=p_6%3AA3DWYIK6Y9EEQB"
+      ],
+      "type": "playwright",
+      "name": "Amazon Canada"
+    },
+    "indigo_ca": {
+      "enabled": true,
+      "urls": [
+        "https://www.chapters.indigo.ca/en-ca/search/?keywords=pokemon+tcg",
+        "https://www.chapters.indigo.ca/en-ca/search/?keywords=one+piece+tcg"
+      ],
+      "type": "playwright",
+      "name": "Indigo/Chapters"
+    },
+    "pokemon_center": {
+      "enabled": true,
+      "urls": [
+        "https://www.pokemoncenter.com/en-ca/category/elite-trainer-box"
+      ],
+      "type": "playwright",
+      "name": "Pokemon Center Canada"
+    },
+    "games_401": {
+      "enabled": true,
+      "urls": [
+        "https://store.401games.ca/collections/all-pokemon",
+        "https://store.401games.ca/collections/one-piece-card-game",
+        "https://store.401games.ca/collections/one-piece-pre-orders"
+      ],
+      "type": "shopify",
+      "name": "401 Games"
+    },
+    "hobbiesville": {
+      "enabled": true,
+      "urls": [
+        "https://hobbiesville.ca/collections/pokemon",
+        "https://hobbiesville.com/collections/one-piece-trading-cards"
+      ],
+      "type": "shopify",
+      "name": "Hobbiesville"
+    },
+    "untouchables_mississauga": {
+      "enabled": true,
+      "urls": [
+        "https://untouchables.ca/collections/pokemon-tcg",
+        "https://untouchables.ca/collections/one-piece"
+      ],
+      "type": "shopify",
+      "name": "Untouchables Mississauga"
+    },
+    "untouchables_milton": {
+      "enabled": true,
+      "urls": [
+        "https://milton.untouchables.ca/collections/pokemon-sealed",
+        "https://milton.untouchables.ca/collections/one-piece-sealed",
+        "https://milton.untouchables.ca/collections/pokemon-sealed-pre-orders",
+        "https://milton.untouchables.ca/collections/one-piece-tcg-sealed-pre-orders"
+      ],
+      "type": "shopify",
+      "name": "Untouchables Milton"
+    },
+    "clutch_games": {
+      "enabled": true,
+      "urls": [
+        "https://clutchgames.ca/collections/pokemon-sealed",
+        "https://clutchgames.ca/collections/one-piece-sealed?filter.v.availability=1"
+      ],
+      "type": "shopify",
+      "name": "Clutch Games"
+    },
+    "face_to_face": {
+      "enabled": true,
+      "urls": [
+        "https://www.facetofacegames.com/collections/pokemon-sealed",
+        "https://www.facetofacegames.com/collections/one-piece-sealed"
+      ],
+      "type": "shopify",
+      "name": "Face to Face Games"
+    }
+  },
+  "news_sources": {
+    "pokebeach": {
+      "enabled": true,
+      "url": "https://www.pokebeach.com/feed",
+      "type": "rss_playwright",
+      "name": "PokeBeach"
+    },
+    "ptcgone": {
+      "enabled": true,
+      "url": "https://ptcgone.com/feed",
+      "type": "rss",
+      "name": "PTCGOne",
+      "_note": "Site may be intermittently down. Bot handles gracefully."
+    },
+    "onepiece_official": {
+      "enabled": true,
+      "url": "https://en.onepiece-cardgame.com/information/",
+      "type": "scrape",
+      "name": "One Piece Card Game Official"
+    },
+    "bandai_news": {
+      "enabled": true,
+      "url": "https://www.bandai.com/en/news/",
+      "type": "scrape",
+      "name": "Bandai News"
+    },
+    "reddit_pokemon": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/PokemonTCG/new.json?limit=25",
+      "type": "reddit",
+      "name": "r/PokemonTCG"
+    },
+    "reddit_onepiece": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/OnePieceTCG/new.json?limit=25",
+      "type": "reddit",
+      "name": "r/OnePieceTCG"
+    },
+    "tcgplayer_news": {
+      "enabled": true,
+      "url": "https://infinite.tcgplayer.com/rss",
+      "type": "rss",
+      "name": "TCGPlayer Infinite"
+    },
+    "youtube_leonhart": {
+      "enabled": true,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCn3_xJwf28O7RuAqJ39oiZg",
+      "type": "rss",
+      "name": "YouTube - Leonhart"
+    },
+    "youtube_pokerev": {
+      "enabled": true,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCUHYM7gs-GZpRGEsskTEqzQ",
+      "type": "rss",
+      "name": "YouTube - PokeRev"
+    },
+    "youtube_tca_gaming": {
+      "enabled": false,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=VERIFY_CHANNEL_ID",
+      "type": "rss",
+      "name": "YouTube - TCA Gaming",
+      "_note": "Channel ID could not be auto-detected. Visit youtube.com/@TCAGaming, view page source, find 'channelId', paste here and set enabled=true"
+    },
+    "youtube_dev_blaze": {
+      "enabled": true,
+      "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCwbVp3-g2HHNhll9peUepKQ",
+      "type": "rss",
+      "name": "YouTube - Dev Blaze"
+    }
+  },
+  "dashboard": {
+    "host": "127.0.0.1",
+    "port": 5000,
+    "enabled": true
+  },
+  "database": {
+    "path": "data/pokemonitor.db"
+  },
+  "logs": {
+    "directory": "logs",
+    "level": "INFO",
+    "max_days": 30
+  }
+}

@@ -1,0 +1,17 @@
+# Runtime data
+data/
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# Local dev
+.env
+.claude/
+
+# Windows scripts (not needed on Railway)
+*.bat
