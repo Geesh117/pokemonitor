@@ -23,10 +23,19 @@
   },
   "keywords": {
     "whitelist": [
-      "pokemon", "pokémon", "one piece", "tcg", "booster",
-      "etb", "elite trainer", "tin", "blister", "starter deck",
-      "promo", "sealed", "trainer box", "scarlet", "violet",
-      "sword", "shield", "journey", "op-", "eb01", "eb02"
+      "booster box",
+      "elite trainer",
+      "etb",
+      "tin",
+      "blister",
+      "starter deck",
+      "sealed",
+      "trainer box",
+      "collection box",
+      "build & battle",
+      "op-",
+      "eb01",
+      "eb02"
     ],
     "booster_box_keywords": ["booster box", "booster bundle", "36 pack", "36pack"]
   },
