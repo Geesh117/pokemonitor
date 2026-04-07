@@ -24,7 +24,7 @@ async def verify_url(url: str, session: Optional[aiohttp.ClientSession] = None) 
     if session is None:
         session = aiohttp.ClientSession(
             headers=_HEADERS,
-            timeout=aiohttp.ClientTimeout(total=10),
+            timeout=aiohttp.ClientTimeout(total=3),
         )
     try:
         async with session.head(url, allow_redirects=True) as resp:
