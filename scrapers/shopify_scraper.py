@@ -49,6 +49,7 @@ class ShopifyScraper(BaseScraper):
                 break
 
             items = data.get("products", [])
+            log.info("Shopify %s/%s page %d: got %d items", site_name, collection, page, len(items))
             if not items:
                 break
 
