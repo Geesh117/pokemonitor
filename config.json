@@ -100,7 +100,8 @@
     "games_401": {
       "enabled": true,
       "urls": [
-        "https://store.401games.ca/collections/sealed-pokemon",
+        "https://store.401games.ca/collections/pokemon-sealed",
+        "https://store.401games.ca/collections/one-piece-sealed",
         "https://store.401games.ca/collections/one-piece-pre-orders"
       ],
       "type": "shopify",
@@ -109,7 +110,7 @@
     "hobbiesville": {
       "enabled": true,
       "urls": [
-        "https://hobbiesville.ca/collections/pokemon-sealed",
+        "https://hobbiesville.ca/collections/sealed-products",
         "https://hobbiesville.com/collections/one-piece-trading-cards"
       ],
       "type": "shopify",
@@ -118,8 +119,8 @@
     "untouchables_mississauga": {
       "enabled": true,
       "urls": [
-        "https://untouchables.ca/collections/pokemon-tcg",
-        "https://untouchables.ca/collections/one-piece"
+        "https://untouchables.ca/collections/pokemon-sealed",
+        "https://untouchables.ca/collections/one-piece-sealed"
       ],
       "type": "shopify",
       "name": "Untouchables Mississauga"
