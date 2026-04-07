@@ -100,8 +100,7 @@
     "games_401": {
       "enabled": true,
       "urls": [
-        "https://store.401games.ca/collections/all-pokemon",
-        "https://store.401games.ca/collections/one-piece-card-game",
+        "https://store.401games.ca/collections/sealed-pokemon",
         "https://store.401games.ca/collections/one-piece-pre-orders"
       ],
       "type": "shopify",
@@ -110,7 +109,7 @@
     "hobbiesville": {
       "enabled": true,
       "urls": [
-        "https://hobbiesville.ca/collections/pokemon",
+        "https://hobbiesville.ca/collections/pokemon-sealed",
         "https://hobbiesville.com/collections/one-piece-trading-cards"
       ],
       "type": "shopify",
