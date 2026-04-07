@@ -13,8 +13,8 @@
     "stale_site_alert_minutes": 10
   },
   "delays": {
-    "between_requests_min": 3,
-    "between_requests_max": 8
+    "between_requests_min": 1,
+    "between_requests_max": 2
   },
   "alert_cooldown_hours": 2,
   "price_sanity": {
