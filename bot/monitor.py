@@ -217,12 +217,6 @@ class Monitor:
                 alert_type = "new_product"  # List even if OOS
 
             if alert_type and cooldown_ok:
-                # Verify URL before sending
-                url_ok = await verify_url(product.url)
-                if not url_ok:
-                    log.warning("URL verification failed, skipping alert: %s", product.url)
-                    continue
-
                 sent = await self._send_product_alert(product, alert_type, change)
                 if sent:
                     self.db.mark_alerted(site_key, product.product_id, alert_type)
