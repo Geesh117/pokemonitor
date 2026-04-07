@@ -11,6 +11,7 @@ Usage:
 import argparse
 import asyncio
 import json
+import logging
 import os
 import signal
 import sys
@@ -117,6 +118,14 @@ async def _send_digest(config: dict):
 
 
 def main():
+    # Route all loggers to stdout so Railway captures output
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     parser = argparse.ArgumentParser(description="PokéMonitor — TCG Bot")
     parser.add_argument("--test", action="store_true", help="Run one check cycle without sending Telegram alerts")
     parser.add_argument("--digest", action="store_true", help="Send daily digest immediately and exit")

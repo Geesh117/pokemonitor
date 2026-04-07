@@ -47,19 +47,22 @@ async def get_browser():
             if _playwright_instance:
                 await _playwright_instance.stop()
             _playwright_instance = await async_playwright().start()
-            _browser = await _playwright_instance.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-blink-features=AutomationControlled",
-                    "--disable-infobars",
-                    "--disable-dev-shm-usage",
-                    "--disable-extensions",
-                    "--window-size=1920,1080",
-                    "--disable-http2",                  # avoid ERR_HTTP2_PROTOCOL_ERROR
-                    "--ignore-certificate-errors",
-                    "--disable-background-networking",
-                ],
+            _browser = await asyncio.wait_for(
+                _playwright_instance.chromium.launch(
+                    headless=True,
+                    args=[
+                        "--no-sandbox",
+                        "--disable-blink-features=AutomationControlled",
+                        "--disable-infobars",
+                        "--disable-dev-shm-usage",
+                        "--disable-extensions",
+                        "--window-size=1920,1080",
+                        "--disable-http2",                  # avoid ERR_HTTP2_PROTOCOL_ERROR
+                        "--ignore-certificate-errors",
+                        "--disable-background-networking",
+                    ],
+                ),
+                timeout=30.0,
             )
             log.info("Playwright browser launched")
     return _browser
