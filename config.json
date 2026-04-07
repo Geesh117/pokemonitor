@@ -53,7 +53,7 @@
       "name": "Costco Canada"
     },
     "bestbuy_ca": {
-      "enabled": true,
+      "enabled": false,
       "urls": [
         "https://www.bestbuy.ca/en-ca/category/pokemon-tcg/10857174",
         "https://www.bestbuy.ca/en-ca/shop/video-games/pokemon-trading-card-games",
