@@ -33,7 +33,7 @@
   "proxies": [],
   "sites": {
     "walmart_ca": {
-      "enabled": true,
+      "enabled": false,
       "urls": [
         "https://www.walmart.ca/en/c/kp/pokemon-cards",
         "https://www.walmart.ca/en/c/kp/one-piece-card-game",
@@ -44,7 +44,7 @@
       "name": "Walmart Canada"
     },
     "costco_ca": {
-      "enabled": true,
+      "enabled": false,
       "urls": [
         "https://www.costco.ca/s?keyword=pokemon+cards",
         "https://www.costco.ca/s?keyword=one+piece+tcg"
@@ -63,7 +63,7 @@
       "name": "Best Buy Canada"
     },
     "amazon_ca": {
-      "enabled": true,
+      "enabled": false,
       "urls": [
         "https://www.amazon.ca/s?k=pokemon+booster+box&rh=p_6%3AA3DWYIK6Y9EEQB",
         "https://www.amazon.ca/s?k=one+piece+tcg&rh=p_6%3AA3DWYIK6Y9EEQB"
@@ -72,7 +72,7 @@
       "name": "Amazon Canada"
     },
     "indigo_ca": {
-      "enabled": true,
+      "enabled": false,
       "urls": [
         "https://www.chapters.indigo.ca/en-ca/search/?keywords=pokemon+tcg",
         "https://www.chapters.indigo.ca/en-ca/search/?keywords=one+piece+tcg"
@@ -81,7 +81,7 @@
       "name": "Indigo/Chapters"
     },
     "pokemon_center": {
-      "enabled": true,
+      "enabled": false,
       "urls": [
         "https://www.pokemoncenter.com/en-ca/category/elite-trainer-box"
       ],
