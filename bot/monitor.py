@@ -215,8 +215,7 @@ class Monitor:
                 alert_type = "new_product"
             elif change["stock_changed"] and product.in_stock and not change["old_in_stock"]:
                 alert_type = "restock"
-            elif change["stock_changed"] and not product.in_stock and change["old_in_stock"]:
-                alert_type = "out_of_stock"
+            # out_of_stock alerts disabled
             elif change["price_changed"] and product.price < change["old_price"]:
                 alert_type = "price_drop"
             elif change["is_new"] and not product.in_stock:
