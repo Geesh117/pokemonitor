@@ -17,6 +17,7 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional
 
+import aiohttp
 import pytz
 
 from bot.database import Database
@@ -103,6 +104,11 @@ class Monitor:
 
         self._last_digest_date: Optional[str] = None
         self._running = False
+
+        # FX rate cache
+        self._usd_cad_rate: Optional[float] = None
+        self._usd_cad_rate_fetched: Optional[datetime] = None
+        self._usd_cad_fallback = config.get("usd_cad_fallback_rate", 1.39)
 
         # Scrapers are created lazily
         self._scrapers: dict = {}
@@ -267,6 +273,36 @@ class Monitor:
         )
 
     # ------------------------------------------------------------------ #
+    # Currency conversion                                                  #
+    # ------------------------------------------------------------------ #
+
+    async def _get_usd_cad_rate(self) -> float:
+        """Return USD→CAD exchange rate, cached for 24 h."""
+        now = datetime.utcnow()
+        if (
+            self._usd_cad_rate is not None
+            and self._usd_cad_rate_fetched is not None
+            and (now - self._usd_cad_rate_fetched).total_seconds() < 86400
+        ):
+            return self._usd_cad_rate
+
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as s:
+                async with s.get("https://open.er-api.com/v6/latest/USD") as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        rate = data["rates"].get("CAD")
+                        if rate:
+                            self._usd_cad_rate = float(rate)
+                            self._usd_cad_rate_fetched = now
+                            log.info("USD→CAD rate updated: %.4f", self._usd_cad_rate)
+                            return self._usd_cad_rate
+        except Exception as exc:
+            log.warning("Could not fetch USD→CAD rate: %s — using fallback %.4f", exc, self._usd_cad_fallback)
+
+        return self._usd_cad_fallback
+
+    # ------------------------------------------------------------------ #
     # Site check                                                           #
     # ------------------------------------------------------------------ #
 
@@ -301,6 +337,14 @@ class Monitor:
 
                 all_products.extend(products)
                 await asyncio.sleep(random.uniform(self.delay_min, self.delay_max))
+
+            # Convert USD prices to CAD if this store prices in USD
+            if site_config.get("currency", "").upper() == "USD" and all_products:
+                rate = await self._get_usd_cad_rate()
+                for p in all_products:
+                    if p.price is not None:
+                        p.price = round(p.price * rate, 2)
+                log.info("%s: applied USD→CAD rate %.4f to %d products", site_name, rate, len(all_products))
 
             await self._process_products(all_products, site_key)
             self.db.update_site_status(site_key, site_name, success=True)

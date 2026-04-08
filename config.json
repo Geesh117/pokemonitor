@@ -39,6 +39,7 @@
     ],
     "booster_box_keywords": ["booster box", "booster bundle", "36 pack", "36pack"]
   },
+  "usd_cad_fallback_rate": 1.39,
   "proxies": [],
   "sites": {
     "walmart_ca": {
@@ -107,14 +108,22 @@
       "type": "shopify",
       "name": "401 Games"
     },
-    "hobbiesville": {
+    "hobbiesville_ca": {
       "enabled": true,
       "urls": [
-        "https://hobbiesville.ca/collections/sealed-products",
-        "https://hobbiesville.com/collections/one-piece-trading-cards"
+        "https://hobbiesville.ca/collections/sealed-products"
       ],
       "type": "shopify",
       "name": "Hobbiesville"
+    },
+    "hobbiesville_com": {
+      "enabled": true,
+      "urls": [
+        "https://hobbiesville.com/collections/one-piece-trading-cards"
+      ],
+      "type": "shopify",
+      "name": "Hobbiesville",
+      "currency": "USD"
     },
     "untouchables_mississauga": {
       "enabled": true,
