@@ -46,7 +46,7 @@
   "proxies": [],
   "sites": {
     "walmart_ca": {
-      "enabled": true,
+      "enabled": false,
       "urls": [
         "https://www.walmart.ca/en/c/kp/pokemon-cards",
         "https://www.walmart.ca/en/c/kp/one-piece-card-game",
