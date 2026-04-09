@@ -244,7 +244,8 @@
         "https://enterthebattlefield.ca/collections/one-piece-sealed"
       ],
       "type": "shopify",
-      "name": "Enter the Battlefield"
+      "name": "Enter the Battlefield",
+      "currency": "USD"
     }
   },
   "news_sources": {
