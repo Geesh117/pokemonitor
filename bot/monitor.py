@@ -403,6 +403,9 @@ class Monitor:
                         print(f"  [NEWS] [{item.source_name}] {item.title}\n    URL: {item.url}")
                         continue
 
+                    if not self.config.get("news_alerts_enabled", True):
+                        continue
+
                     sent = await self.tg.send_news(item.source_name, item.title, item.url)
                     if sent:
                         self.db.mark_news_alerted(item.url)
