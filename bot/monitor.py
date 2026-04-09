@@ -228,8 +228,6 @@ class Monitor:
                 drop_pct = drop_abs / change["old_price"] * 100
                 if drop_pct >= self.min_price_drop_pct or drop_abs >= self.min_price_drop_abs:
                     alert_type = "price_drop"
-            elif change["is_new"] and not product.in_stock:
-                alert_type = "new_product"  # List even if OOS
 
             if alert_type and cooldown_ok:
                 sent = await self._send_product_alert(product, alert_type, change)
