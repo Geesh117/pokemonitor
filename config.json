@@ -210,7 +210,8 @@
         "https://kanzengames.com/collections/one-piece-pre-order-1"
       ],
       "type": "shopify",
-      "name": "Kanzen Games"
+      "name": "Kanzen Games",
+      "currency": "USD"
     },
     "dungeon_comics": {
       "enabled": true,
