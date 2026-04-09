@@ -153,12 +153,16 @@ class WalmartScraper:
                 }
             """)
 
+            page_title = await page.title()
+            page_url = page.url
+            log.info("Walmart page loaded: title=%r url=%s", page_title, page_url)
+
             if next_data:
                 import json
                 try:
                     data = json.loads(next_data)
-                    # Navigate the nested structure
                     items = _extract_walmart_products(data)
+                    log.info("Walmart __NEXT_DATA__ found, extracted %d items", len(items))
                     for item in items:
                         products.append(Product(
                             site_key=site_key,
@@ -172,11 +176,14 @@ class WalmartScraper:
                             raw=item,
                         ))
                 except Exception as exc:
-                    log.debug("Walmart JSON parse error: %s", exc)
+                    log.info("Walmart JSON parse error: %s", exc)
+            else:
+                log.info("Walmart: __NEXT_DATA__ not found on page")
 
             if not products:
                 # Fallback: parse HTML
                 html = await page.content()
+                log.info("Walmart HTML fallback, page length=%d chars", len(html))
                 products = _parse_walmart_html(html, site_key, site_name, url)
 
         except Exception as exc:
