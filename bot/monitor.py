@@ -31,6 +31,7 @@ EST = pytz.timezone("America/Toronto")
 
 # Keyword whitelist — case-insensitive
 KEYWORD_WHITELIST: list = []
+GAME_FILTER: list = []
 
 # Price sanity thresholds
 BOOSTER_BOX_MIN = 10.0
@@ -43,6 +44,14 @@ def _matches_whitelist(title: str, whitelist: list) -> bool:
         return True
     title_lower = title.lower()
     return any(kw.lower() in title_lower for kw in whitelist)
+
+
+def _matches_game_filter(title: str, game_filter: list) -> bool:
+    """Return True if title mentions at least one of the allowed games."""
+    if not game_filter:
+        return True
+    title_lower = title.lower()
+    return any(kw.lower() in title_lower for kw in game_filter)
 
 
 def _is_booster_box(title: str) -> bool:
@@ -104,6 +113,9 @@ class Monitor:
 
         self.min_price_drop_pct = config.get("min_price_drop_pct", 2.0)
         self.min_price_drop_abs = config.get("min_price_drop_abs_cad", 5.0)
+
+        global GAME_FILTER
+        GAME_FILTER = config["keywords"].get("game_filter", [])
 
         self._last_digest_date: Optional[str] = None
         self._running = False
@@ -172,6 +184,8 @@ class Monitor:
 
     async def _process_products(self, products: list, site_key: str):
         for product in products:
+            if not _matches_game_filter(product.title, GAME_FILTER):
+                continue
             if not _matches_whitelist(product.title, KEYWORD_WHITELIST):
                 continue
 

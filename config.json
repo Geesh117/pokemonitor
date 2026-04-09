@@ -37,7 +37,8 @@
       "eb01",
       "eb02"
     ],
-    "booster_box_keywords": ["booster box", "booster bundle", "36 pack", "36pack"]
+    "booster_box_keywords": ["booster box", "booster bundle", "36 pack", "36pack"],
+    "game_filter": ["pokemon", "pokémon", "one piece", "onepiece", "op-", "eb0"]
   },
   "usd_cad_fallback_rate": 1.39,
   "min_price_drop_pct": 2.0,
@@ -173,7 +174,8 @@
         "https://www.theupperhand.ca/collections/one-piece-card-game?sort_by=created-descending"
       ],
       "type": "shopify",
-      "name": "The Upper Hand"
+      "name": "The Upper Hand",
+      "currency": "USD"
     },
     "top_shelf_co": {
       "enabled": true,
