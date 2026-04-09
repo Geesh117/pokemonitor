@@ -168,6 +168,7 @@ class WalmartScraper:
                             url=_walmart_product_url(item),
                             price=_walmart_price(item),
                             in_stock=_walmart_in_stock(item),
+                            image_url=item.get("imageInfo", {}).get("thumbnailUrl") or item.get("image", {}).get("url"),
                             raw=item,
                         ))
                 except Exception as exc:
@@ -271,6 +272,8 @@ def _parse_walmart_html(html: str, site_key: str, site_name: str, base_url: str)
             href = "https://www.walmart.ca" + href
         price_el = card.select_one('[itemprop="price"], .price-characteristic, [data-automation-id="product-price"]')
         price = parse_price(price_el.get_text(strip=True)) if price_el else None
+        img_el = card.select_one("img[src]")
+        image_url = img_el.get("src") or img_el.get("data-src") if img_el else None
         in_stock = "out-of-stock" not in html.lower() or bool(price)
         if title or pid:
             products.append(Product(
@@ -278,6 +281,7 @@ def _parse_walmart_html(html: str, site_key: str, site_name: str, base_url: str)
                 product_id=pid or title[:40],
                 title=title, url=href or base_url,
                 price=price, in_stock=in_stock,
+                image_url=image_url,
             ))
     return products
 
@@ -342,6 +346,8 @@ def _parse_costco_html(html: str, site_key: str, site_name: str) -> List[Product
         price_el = tile.select_one(".price, .automation-final-price, [automation-id='finalPrice']")
         price = parse_price(price_el.get_text(strip=True)) if price_el else None
 
+        img_el = tile.select_one("img[src]")
+        image_url = img_el.get("src") or img_el.get("data-src") if img_el else None
         out = tile.select_one(".out-of-stock, [class*='soldOut'], [class*='outOfStock']")
         in_stock = out is None and bool(price)
 
@@ -351,6 +357,7 @@ def _parse_costco_html(html: str, site_key: str, site_name: str) -> List[Product
                 product_id=pid or title[:40],
                 title=title, url=href or "https://www.costco.ca",
                 price=price, in_stock=in_stock,
+                image_url=image_url,
             ))
     return products
 
@@ -371,8 +378,6 @@ class AmazonScraper:
         page = await context.new_page()
         try:
             await stealth_async(page)
-            # Amazon-specific: block images to speed up load
-            await page.route("**/*.{png,jpg,gif,webp,svg}", lambda r: r.abort())
             await page.goto(url, wait_until="domcontentloaded", timeout=35000)
             await _dismiss_consent(page)
             await page.wait_for_timeout(random.randint(2000, 4000))
@@ -428,6 +433,9 @@ def _parse_amazon_html(html: str, site_key: str, site_name: str) -> List[Product
             if price_el:
                 price = parse_price(price_el.get_text(strip=True))
 
+        img_el = item.select_one("img.s-image, img[data-image-latency], img[src*='amazon']")
+        image_url = img_el.get("src") if img_el else None
+
         # Stock: if price present and no "Currently unavailable", assume in stock
         unavailable = item.select_one("[class*='unavailable'], .a-color-error")
         in_stock = price is not None and unavailable is None
@@ -438,6 +446,7 @@ def _parse_amazon_html(html: str, site_key: str, site_name: str) -> List[Product
                 product_id=asin, title=title,
                 url=href or f"https://www.amazon.ca/dp/{asin}",
                 price=price, in_stock=in_stock,
+                image_url=image_url,
             ))
     return products
 
@@ -495,6 +504,8 @@ def _parse_indigo_html(html: str, site_key: str, site_name: str) -> List[Product
         price_el = card.select_one(".product-card__sale-price, .product-price, [class*='price']")
         price = parse_price(price_el.get_text(strip=True)) if price_el else None
 
+        img_el = card.select_one("img[src]")
+        image_url = img_el.get("src") or img_el.get("data-src") if img_el else None
         out = card.select_one("[class*='soldOut'], [class*='out-of-stock'], .product-card__availability--out")
         in_stock = out is None and bool(href)
 
@@ -504,6 +515,7 @@ def _parse_indigo_html(html: str, site_key: str, site_name: str) -> List[Product
                 product_id=pid or title[:40],
                 title=title, url=href or "https://www.chapters.indigo.ca",
                 price=price, in_stock=in_stock,
+                image_url=image_url,
             ))
     return products
 
@@ -566,6 +578,8 @@ def _parse_pokemon_center_html(html: str, site_key: str, site_name: str) -> List
         price_el = card.select_one(".product-tile__price, .price, [class*='price']")
         price = parse_price(price_el.get_text(strip=True)) if price_el else None
 
+        img_el = card.select_one("img[src]")
+        image_url = img_el.get("src") or img_el.get("data-src") if img_el else None
         out = card.select_one("[class*='soldOut'], [class*='outOfStock'], [class*='unavailable']")
         add_btn = card.select_one("button[class*='add-to-cart'], button[class*='addToCart']")
         in_stock = out is None and (add_btn is not None or bool(price))
@@ -576,5 +590,6 @@ def _parse_pokemon_center_html(html: str, site_key: str, site_name: str) -> List
                 product_id=pid or title[:40],
                 title=title, url=href or "https://www.pokemoncenter.com/en-ca",
                 price=price, in_stock=in_stock,
+                image_url=image_url,
             ))
     return products
