@@ -19,7 +19,7 @@
   "alert_cooldown_hours": 2,
   "price_sanity": {
     "booster_box_min_cad": 10,
-    "booster_box_max_cad": 1000
+    "booster_box_max_cad": 15000
   },
   "keywords": {
     "whitelist": [
@@ -46,7 +46,7 @@
   "proxies": [],
   "sites": {
     "walmart_ca": {
-      "enabled": true,
+      "enabled": false,
       "urls": [
         "https://www.walmart.ca/en/c/kp/pokemon-cards",
         "https://www.walmart.ca/en/c/kp/one-piece-card-game",
@@ -57,7 +57,7 @@
       "name": "Walmart Canada"
     },
     "costco_ca": {
-      "enabled": true,
+      "enabled": false,
       "urls": [
         "https://www.costco.ca/s?keyword=pokemon+cards",
         "https://www.costco.ca/s?keyword=one+piece+tcg"
@@ -105,24 +105,18 @@
     "games_401": {
       "enabled": true,
       "urls": [
-        "https://store.401games.ca/collections/pokemon-sealed",
-        "https://store.401games.ca/collections/one-piece-sealed",
+        "https://store.401games.ca/collections/pokemon-booster-boxes",
+        "https://store.401games.ca/collections/pokemon-elite-trainer-boxes",
+        "https://store.401games.ca/collections/one-piece-booster-boxes",
         "https://store.401games.ca/collections/one-piece-pre-orders"
       ],
       "type": "shopify",
       "name": "401 Games"
     },
-    "hobbiesville_ca": {
+    "hobbiesville": {
       "enabled": true,
       "urls": [
-        "https://hobbiesville.ca/collections/sealed-products"
-      ],
-      "type": "shopify",
-      "name": "Hobbiesville"
-    },
-    "hobbiesville_com": {
-      "enabled": true,
-      "urls": [
+        "https://hobbiesville.com/collections/pokemon",
         "https://hobbiesville.com/collections/one-piece-trading-cards"
       ],
       "type": "shopify",
@@ -132,8 +126,8 @@
     "untouchables_mississauga": {
       "enabled": true,
       "urls": [
-        "https://untouchables.ca/collections/pokemon-sealed",
-        "https://untouchables.ca/collections/one-piece-sealed"
+        "https://untouchables.ca/collections/pokemon-tcg",
+        "https://untouchables.ca/collections/one-piece-sealed-product"
       ],
       "type": "shopify",
       "name": "Untouchables Mississauga"
