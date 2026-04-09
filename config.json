@@ -40,6 +40,8 @@
     "booster_box_keywords": ["booster box", "booster bundle", "36 pack", "36pack"]
   },
   "usd_cad_fallback_rate": 1.39,
+  "min_price_drop_pct": 2.0,
+  "min_price_drop_abs_cad": 5.0,
   "proxies": [],
   "sites": {
     "walmart_ca": {

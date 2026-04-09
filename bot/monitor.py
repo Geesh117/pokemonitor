@@ -102,6 +102,9 @@ class Monitor:
         BOOSTER_BOX_MAX = config["price_sanity"]["booster_box_max_cad"]
         BOOSTER_BOX_KWS = config["keywords"].get("booster_box_keywords", BOOSTER_BOX_KWS)
 
+        self.min_price_drop_pct = config.get("min_price_drop_pct", 2.0)
+        self.min_price_drop_abs = config.get("min_price_drop_abs_cad", 5.0)
+
         self._last_digest_date: Optional[str] = None
         self._running = False
 
@@ -216,8 +219,15 @@ class Monitor:
             elif change["stock_changed"] and product.in_stock and not change["old_in_stock"]:
                 alert_type = "restock"
             # out_of_stock alerts disabled
-            elif change["price_changed"] and product.price < change["old_price"]:
-                alert_type = "price_drop"
+            elif (
+                change["price_changed"]
+                and product.price < change["old_price"]
+                and product.in_stock
+            ):
+                drop_abs = change["old_price"] - product.price
+                drop_pct = drop_abs / change["old_price"] * 100
+                if drop_pct >= self.min_price_drop_pct or drop_abs >= self.min_price_drop_abs:
+                    alert_type = "price_drop"
             elif change["is_new"] and not product.in_stock:
                 alert_type = "new_product"  # List even if OOS
 
@@ -236,22 +246,19 @@ class Monitor:
                     )
 
     async def _send_product_alert(self, product: Product, alert_type: str, change: dict) -> bool:
+        img = product.image_url
         if alert_type == "restock":
             return await self.tg.send_restock(
-                product.site_name, product.title, product.price, product.url
+                product.site_name, product.title, product.price, product.url, img
             )
         elif alert_type == "new_product":
             return await self.tg.send_new_product(
-                product.site_name, product.title, product.price, product.url, product.in_stock
+                product.site_name, product.title, product.price, product.url, product.in_stock, img
             )
         elif alert_type == "price_drop":
             return await self.tg.send_price_drop(
                 product.site_name, product.title,
-                change["old_price"], product.price, product.url
-            )
-        elif alert_type == "out_of_stock":
-            return await self.tg.send_out_of_stock(
-                product.site_name, product.title, product.url
+                change["old_price"], product.price, product.url, img
             )
         return False
 

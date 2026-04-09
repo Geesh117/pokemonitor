@@ -19,6 +19,7 @@ def _now_est() -> str:
 
 class TelegramService:
     BASE_URL = "https://api.telegram.org/bot{token}/sendMessage"
+    PHOTO_URL = "https://api.telegram.org/bot{token}/sendPhoto"
 
     def __init__(self, token: str, chat_id: str):
         self.token = token
@@ -53,6 +54,28 @@ class TelegramService:
             log.error("Telegram send failed: %s", exc)
             return False
 
+    async def send_with_photo(self, caption: str, image_url: Optional[str]) -> bool:
+        """Send a photo with caption. Falls back to plain text if no image or sendPhoto fails."""
+        if not image_url:
+            return await self.send(caption)
+        url = self.PHOTO_URL.format(token=self.token)
+        payload = {
+            "chat_id": self.chat_id,
+            "photo": image_url,
+            "caption": caption[:1024],
+            "parse_mode": "HTML",
+        }
+        try:
+            session = await self._get_session()
+            async with session.post(url, json=payload) as resp:
+                if resp.status == 200:
+                    return True
+                log.warning("sendPhoto failed (%s), falling back to text", resp.status)
+                return await self.send(caption)
+        except Exception as exc:
+            log.warning("sendPhoto exception (%s), falling back to text", exc)
+            return await self.send(caption)
+
     # ------------------------------------------------------------------ #
     # Formatted alert helpers                                              #
     # ------------------------------------------------------------------ #
@@ -63,6 +86,7 @@ class TelegramService:
         product_name: str,
         price: Optional[float],
         url: str,
+        image_url: Optional[str] = None,
     ) -> bool:
         price_str = f"${price:.2f} CAD" if price else "N/A"
         msg = (
@@ -74,7 +98,7 @@ class TelegramService:
             f"🔗 <b>URL:</b> {url}\n"
             f"🕐 <b>Time:</b> {_now_est()}"
         )
-        return await self.send(msg)
+        return await self.send_with_photo(msg, image_url)
 
     async def send_new_product(
         self,
@@ -83,6 +107,7 @@ class TelegramService:
         price: Optional[float],
         url: str,
         in_stock: bool,
+        image_url: Optional[str] = None,
     ) -> bool:
         price_str = f"${price:.2f} CAD" if price else "N/A"
         stock_str = "✅ In Stock" if in_stock else "❌ Out of Stock"
@@ -95,7 +120,7 @@ class TelegramService:
             f"🔗 <b>URL:</b> {url}\n"
             f"🕐 <b>Time:</b> {_now_est()}"
         )
-        return await self.send(msg)
+        return await self.send_with_photo(msg, image_url)
 
     async def send_price_drop(
         self,
@@ -104,6 +129,7 @@ class TelegramService:
         old_price: float,
         new_price: float,
         url: str,
+        image_url: Optional[str] = None,
     ) -> bool:
         drop_pct = ((old_price - new_price) / old_price) * 100 if old_price > 0 else 0
         msg = (
@@ -115,7 +141,7 @@ class TelegramService:
             f"🔗 <b>URL:</b> {url}\n"
             f"🕐 <b>Time:</b> {_now_est()}"
         )
-        return await self.send(msg)
+        return await self.send_with_photo(msg, image_url)
 
     async def send_out_of_stock(
         self,
