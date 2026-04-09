@@ -45,7 +45,7 @@
   "proxies": [],
   "sites": {
     "walmart_ca": {
-      "enabled": false,
+      "enabled": true,
       "urls": [
         "https://www.walmart.ca/en/c/kp/pokemon-cards",
         "https://www.walmart.ca/en/c/kp/one-piece-card-game",
@@ -56,7 +56,7 @@
       "name": "Walmart Canada"
     },
     "costco_ca": {
-      "enabled": false,
+      "enabled": true,
       "urls": [
         "https://www.costco.ca/s?keyword=pokemon+cards",
         "https://www.costco.ca/s?keyword=one+piece+tcg"
@@ -75,7 +75,7 @@
       "name": "Best Buy Canada"
     },
     "amazon_ca": {
-      "enabled": false,
+      "enabled": true,
       "urls": [
         "https://www.amazon.ca/s?k=pokemon+booster+box&rh=p_6%3AA3DWYIK6Y9EEQB",
         "https://www.amazon.ca/s?k=one+piece+tcg&rh=p_6%3AA3DWYIK6Y9EEQB"
@@ -84,7 +84,7 @@
       "name": "Amazon Canada"
     },
     "indigo_ca": {
-      "enabled": false,
+      "enabled": true,
       "urls": [
         "https://www.chapters.indigo.ca/en-ca/search/?keywords=pokemon+tcg",
         "https://www.chapters.indigo.ca/en-ca/search/?keywords=one+piece+tcg"
@@ -93,9 +93,10 @@
       "name": "Indigo/Chapters"
     },
     "pokemon_center": {
-      "enabled": false,
+      "enabled": true,
       "urls": [
-        "https://www.pokemoncenter.com/en-ca/category/elite-trainer-box"
+        "https://www.pokemoncenter.com/en-ca/category/elite-trainer-box",
+        "https://www.pokemoncenter.com/en-ca/category/booster-packs"
       ],
       "type": "playwright",
       "name": "Pokemon Center Canada"
@@ -164,6 +165,86 @@
       ],
       "type": "shopify",
       "name": "Face to Face Games"
+    },
+    "the_upper_hand": {
+      "enabled": true,
+      "urls": [
+        "https://www.theupperhand.ca/collections/pokemon-trading-card-game?sort_by=created-descending",
+        "https://www.theupperhand.ca/collections/one-piece-card-game?sort_by=created-descending"
+      ],
+      "type": "shopify",
+      "name": "The Upper Hand"
+    },
+    "top_shelf_co": {
+      "enabled": true,
+      "urls": [
+        "https://topshelfco.ca/collections/pokemon-pre-orders",
+        "https://topshelfco.ca/collections/bandai-one-piece-pre-orders",
+        "https://topshelfco.ca/collections/pokemon-home?sort_by=created-descending",
+        "https://topshelfco.ca/collections/bandai-trading-card-games?sort_by=created-descending"
+      ],
+      "type": "shopify",
+      "name": "Top Shelf Co"
+    },
+    "red_riot_games": {
+      "enabled": true,
+      "urls": [
+        "https://redriotgames.ca/collections/pokemon-sealed?sort_by=created-descending",
+        "https://redriotgames.ca/collections/one-peace-pre-order",
+        "https://redriotgames.ca/collections/one-piece-sealed?sort_by=created-descending"
+      ],
+      "type": "shopify",
+      "name": "Red Riot Games"
+    },
+    "aspec_cards": {
+      "enabled": true,
+      "urls": [
+        "https://aspeccards.com/collections/one-piece-tcg?sort_by=created-descending",
+        "https://aspeccards.com/collections/pokemon"
+      ],
+      "type": "shopify",
+      "name": "Aspec Cards"
+    },
+    "kanzen_games": {
+      "enabled": true,
+      "urls": [
+        "https://kanzengames.com/collections/pokemon-sealed-in-stock",
+        "https://kanzengames.com/collections/pokemon-pre-order",
+        "https://kanzengames.com/collections/one-piece-sealed-in-stock",
+        "https://kanzengames.com/collections/one-piece-pre-order-1"
+      ],
+      "type": "shopify",
+      "name": "Kanzen Games"
+    },
+    "dungeon_comics": {
+      "enabled": true,
+      "urls": [
+        "https://www.dungeoncomicsandcards.ca/collections/pokemon-sealed?sort_by=created-descending",
+        "https://www.dungeoncomicsandcards.ca/collections/one-piece-tcg-sealed?sort_by=created-descending"
+      ],
+      "type": "shopify",
+      "name": "Dungeon Comics & Cards"
+    },
+    "does_cards": {
+      "enabled": true,
+      "urls": [
+        "https://doescards.ca/collections/all-pre-order",
+        "https://doescards.ca/collections/pokemon-tcg-booster-boxes?sort_by=created-descending",
+        "https://doescards.ca/collections/pokemon-cards-elite-trainer-box?sort_by=created-descending",
+        "https://doescards.ca/collections/booster-packs?sort_by=created-descending",
+        "https://doescards.ca/collections/one-piece-card-game-booster-boxes"
+      ],
+      "type": "shopify",
+      "name": "Does Cards"
+    },
+    "enter_the_battlefield": {
+      "enabled": true,
+      "urls": [
+        "https://enterthebattlefield.ca/collections/pokemon-sealed",
+        "https://enterthebattlefield.ca/collections/one-piece-sealed"
+      ],
+      "type": "shopify",
+      "name": "Enter the Battlefield"
     }
   },
   "news_sources": {
