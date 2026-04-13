@@ -84,9 +84,21 @@ class Database:
                     status          TEXT    NOT NULL DEFAULT 'unknown'
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_products_site_key ON products(site_key);
-                CREATE INDEX IF NOT EXISTS idx_alerts_sent_at    ON alerts(sent_at);
-                CREATE INDEX IF NOT EXISTS idx_news_first_seen   ON news(first_seen);
+                CREATE TABLE IF NOT EXISTS price_history (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_key    TEXT    NOT NULL,
+                    product_id  TEXT    NOT NULL,
+                    title       TEXT,
+                    site_name   TEXT,
+                    price       REAL,
+                    in_stock    INTEGER NOT NULL DEFAULT 0,
+                    recorded_at TEXT    NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_products_site_key  ON products(site_key);
+                CREATE INDEX IF NOT EXISTS idx_alerts_sent_at     ON alerts(sent_at);
+                CREATE INDEX IF NOT EXISTS idx_news_first_seen    ON news(first_seen);
+                CREATE INDEX IF NOT EXISTS idx_price_hist_product ON price_history(site_key, product_id);
             """)
         log.info("Database initialised at %s", self.db_path)
 
@@ -159,6 +171,59 @@ class Database:
                 "UPDATE products SET last_alerted=?, alert_type=? WHERE site_key=? AND product_id=?",
                 (now, alert_type, site_key, product_id),
             )
+
+    def record_price_history(
+        self,
+        site_key: str,
+        product_id: str,
+        title: str,
+        site_name: str,
+        price: Optional[float],
+        in_stock: bool,
+    ):
+        now = datetime.utcnow().isoformat()
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO price_history
+                   (site_key, product_id, title, site_name, price, in_stock, recorded_at)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (site_key, product_id, title, site_name, price, int(in_stock), now),
+            )
+
+    def get_price_history(self, site_key: str, product_id: str, days: int = 30) -> list:
+        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT price, in_stock, recorded_at FROM price_history
+                   WHERE site_key=? AND product_id=? AND recorded_at > ?
+                   ORDER BY recorded_at ASC""",
+                (site_key, product_id, cutoff),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def search_price_history(self, query: str, days: int = 30, limit: int = 5) -> list:
+        """Find products matching query and return their price history."""
+        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        terms = query.lower().split()
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT DISTINCT site_key, product_id, title, site_name
+                   FROM price_history WHERE recorded_at > ?""",
+                (cutoff,),
+            ).fetchall()
+        matches = []
+        seen = set()
+        for row in rows:
+            key = (row["site_key"], row["product_id"])
+            if key in seen:
+                continue
+            title_lower = (row["title"] or "").lower()
+            if all(t in title_lower for t in terms):
+                seen.add(key)
+                matches.append(dict(row))
+            if len(matches) >= limit:
+                break
+        return matches
 
     def search_products(self, query: str, limit: int = 15) -> list:
         """Full-text search across product titles. Returns in-stock results first."""

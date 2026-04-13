@@ -37,6 +37,8 @@ def load_config(path: str = "config.json") -> dict:
     if os.environ.get("PORT"):
         config["dashboard"]["port"] = int(os.environ["PORT"])
         config["dashboard"]["host"] = "0.0.0.0"
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        config.setdefault("anthropic", {})["api_key"] = os.environ["ANTHROPIC_API_KEY"]
 
     return config
 

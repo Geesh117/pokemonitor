@@ -4,6 +4,9 @@
     "chat_id": "SET_VIA_ENV_VAR_TELEGRAM_CHAT_ID",
     "extra_chat_ids": []
   },
+  "anthropic": {
+    "api_key": "SET_VIA_ENV_VAR_ANTHROPIC_API_KEY"
+  },
   "intervals": {
     "retail_min_seconds": 60,
     "retail_max_seconds": 90,

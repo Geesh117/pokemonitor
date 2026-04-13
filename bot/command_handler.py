@@ -2,14 +2,17 @@
 Telegram command handler — long polling for incoming messages.
 
 Supported commands:
-  /help    — show all commands
-  /drops   — recent drop alerts (last 72h)
-  /news    — latest TCG news (last 24h)
-  /sales   — recent price drops (last 48h)
-  /prices  — search current prices across all stores
-  /stores  — list all monitored stores
-  /status  — store health check (last check time, errors)
-  /start   — welcome + show chat ID (useful for new users getting access)
+  /help      — show all commands
+  /drops     — recent drop alerts (last 72h)
+  /news      — latest TCG news (last 24h)
+  /sales     — recent price drops (last 48h)
+  /prices    — search current prices across all stores
+  /history   — price history for a product (last 30 days)
+  /preorders — active pre-orders across all monitored stores
+  /ask       — ask the bot anything about TCG (Claude AI)
+  /stores    — list all monitored stores
+  /status    — store health check (last check time, errors)
+  /start     — welcome + show chat ID (useful for new users getting access)
 """
 
 import asyncio
@@ -151,13 +154,16 @@ class CommandHandler:
         log.info("Command %s from @%s (chat_id=%s)", cmd, username, chat_id)
 
         dispatch = {
-            "/help":   self._cmd_help,
-            "/drops":  self._cmd_drops,
-            "/news":   self._cmd_news,
-            "/sales":  self._cmd_sales,
-            "/prices": self._cmd_prices,
-            "/stores": self._cmd_stores,
-            "/status": self._cmd_status,
+            "/help":      self._cmd_help,
+            "/drops":     self._cmd_drops,
+            "/news":      self._cmd_news,
+            "/sales":     self._cmd_sales,
+            "/prices":    self._cmd_prices,
+            "/history":   self._cmd_history,
+            "/preorders": self._cmd_preorders,
+            "/ask":       self._cmd_ask,
+            "/stores":    self._cmd_stores,
+            "/status":    self._cmd_status,
         }
 
         handler = dispatch.get(cmd)
@@ -208,8 +214,17 @@ class CommandHandler:
             "    Search current in-stock prices across all stores\n"
             "    Example: <code>/prices prismatic etb</code>\n"
             "    Example: <code>/prices one piece op07</code>\n\n"
+            "📈 <b>/history</b> <i>[product name]</i>\n"
+            "    Price history for a product over the last 30 days\n"
+            "    Example: <code>/history prismatic etb</code>\n\n"
+            "🛒 <b>/preorders</b>\n"
+            "    Active pre-orders across all monitored stores\n\n"
+            "🤖 <b>/ask</b> <i>[question]</i>\n"
+            "    Ask the bot anything about TCG — uses live data + AI\n"
+            "    Example: <code>/ask is the SPC prismatic in stock anywhere?</code>\n"
+            "    Example: <code>/ask what drops are coming up this weekend?</code>\n\n"
             "🏪 <b>/stores</b>\n"
-            "    All 19 monitored stores and their websites\n\n"
+            "    All monitored stores and their websites\n\n"
             "📊 <b>/status</b>\n"
             "    Store health — last check time, any errors\n\n"
             "❓ <b>/help</b>\n"
@@ -337,6 +352,206 @@ class CommandHandler:
                 lines.append(f"    {p['title'][:70]}")
 
         await self._reply(chat_id, "\n".join(lines).strip())
+
+    # ------------------------------------------------------------------ #
+    # /history                                                             #
+    # ------------------------------------------------------------------ #
+
+    async def _cmd_history(self, chat_id: str, args: list):
+        if not args:
+            await self._reply(
+                chat_id,
+                "Usage: /history <i>[product name]</i>\n"
+                "Example: <code>/history prismatic etb</code>\n"
+                "Example: <code>/history op07 booster box</code>",
+            )
+            return
+
+        query = " ".join(args).lower()
+        matches = self.db.search_price_history(query, days=30, limit=3)
+
+        if not matches:
+            await self._reply(chat_id, f"📈 No price history found for: <b>{query}</b>\n\nTry a shorter or different search term.")
+            return
+
+        lines = [f"📈 <b>Price History: {query}</b> (last 30 days)\n"]
+
+        for match in matches:
+            history = self.db.get_price_history(match["site_key"], match["product_id"], days=30)
+            if not history:
+                continue
+
+            title_short = (match.get("title") or query)[:65]
+            store = match.get("site_name", "Unknown")
+            lines.append(f"🏪 <b>{store}</b> — {title_short}")
+
+            # Show up to last 8 data points as a timeline
+            shown = history[-8:]
+            for entry in shown:
+                ts = entry.get("recorded_at", "")[:10]
+                price = entry.get("price")
+                in_stock = entry.get("in_stock")
+                price_str = f"${price:.2f}" if price else "N/A"
+                stock_icon = "✅" if in_stock else "❌"
+                lines.append(f"  {stock_icon} {ts} — {price_str} CAD")
+
+            # Show price range
+            prices = [e["price"] for e in history if e.get("price")]
+            if len(prices) > 1:
+                lines.append(f"  📊 Range: ${min(prices):.2f} – ${max(prices):.2f} CAD over {len(prices)} data points")
+
+            lines.append("")
+
+        await self._reply(chat_id, "\n".join(lines).strip())
+
+    # ------------------------------------------------------------------ #
+    # /preorders                                                           #
+    # ------------------------------------------------------------------ #
+
+    async def _cmd_preorders(self, chat_id: str, args: list):
+        # Search for pre-order listings across all products
+        results = []
+        seen_ids = set()
+        for term in ("pre-order", "preorder", "pre order"):
+            for p in self.db.search_products(term, limit=20):
+                key = (p["site_key"], p["product_id"])
+                if key not in seen_ids:
+                    seen_ids.add(key)
+                    results.append(p)
+
+        if not results:
+            await self._reply(chat_id, "🛒 No active pre-orders found across monitored stores right now.")
+            return
+
+        in_stock = [p for p in results if p.get("in_stock")]
+        out_stock = [p for p in results if not p.get("in_stock")]
+
+        lines = [f"🛒 <b>Pre-orders</b> ({len(results)} found)\n"]
+
+        if in_stock:
+            lines.append("✅ <b>Available Now</b>")
+            for p in in_stock[:8]:
+                price_str = f"${p['price']:.2f} CAD" if p.get("price") else "N/A"
+                lines.append(f"  • <b>{p['site_name']}</b> — {price_str}")
+                lines.append(f"    {p['title'][:70]}")
+                if p.get("url"):
+                    lines.append(f"    {p['url']}")
+            lines.append("")
+
+        if out_stock:
+            lines.append("🔔 <b>Sold Out / Upcoming</b>")
+            for p in out_stock[:8]:
+                price_str = f"${p['price']:.2f} CAD" if p.get("price") else "N/A"
+                lines.append(f"  • <b>{p['site_name']}</b> — {price_str}")
+                lines.append(f"    {p['title'][:70]}")
+                if p.get("url"):
+                    lines.append(f"    {p['url']}")
+
+        lines.append(f"\n🕐 {_now_est()}")
+        await self._reply(chat_id, "\n".join(lines).strip())
+
+    # ------------------------------------------------------------------ #
+    # /ask                                                                 #
+    # ------------------------------------------------------------------ #
+
+    async def _cmd_ask(self, chat_id: str, args: list):
+        if not args:
+            await self._reply(
+                chat_id,
+                "Usage: /ask <i>[your question]</i>\n"
+                "Example: <code>/ask is the prismatic etb in stock anywhere?</code>\n"
+                "Example: <code>/ask what pokemon drops are coming up this week?</code>",
+            )
+            return
+
+        question = " ".join(args)
+        await self._reply(chat_id, "🤖 Thinking...")
+
+        try:
+            import anthropic
+
+            # Pull live context from the database
+            recent_alerts = self.db.get_alerts_since(hours=48)
+            recent_news = self.db.get_recent_news(limit=15)
+            site_statuses = self.db.get_all_site_status()
+
+            # Try to extract keywords from the question for product search
+            stop_words = {"is", "the", "a", "an", "in", "at", "on", "are", "was", "were",
+                          "what", "where", "when", "which", "how", "why", "who", "does",
+                          "do", "did", "will", "can", "could", "should", "would", "any",
+                          "there", "stock", "price", "anywhere", "it", "this", "that",
+                          "for", "of", "to", "and", "or", "i", "my", "me"}
+            kw = [w.lower() for w in question.split() if w.lower() not in stop_words and len(w) > 2]
+            products = self.db.search_products(" ".join(kw[:4]), limit=10) if kw else []
+
+            # Build context string
+            ctx_parts = []
+
+            if recent_alerts:
+                alert_lines = []
+                for a in recent_alerts[:15]:
+                    ts = (a.get("sent_at") or "")[:16]
+                    p = f"${a['price']:.2f}" if a.get("price") else "N/A"
+                    alert_lines.append(f"- [{ts}] {a['alert_type']} @ {a['site_name']}: {a['title']} ({p})")
+                ctx_parts.append("RECENT ALERTS (last 48h):\n" + "\n".join(alert_lines))
+
+            if products:
+                prod_lines = []
+                for p in products:
+                    price_str = f"${p['price']:.2f}" if p.get("price") else "N/A"
+                    stock = "IN STOCK" if p.get("in_stock") else "out of stock"
+                    prod_lines.append(f"- {p['site_name']}: {p['title']} — {price_str} — {stock}")
+                ctx_parts.append("RELEVANT PRODUCTS:\n" + "\n".join(prod_lines))
+
+            if recent_news:
+                news_lines = [f"- {n['source_name']}: {n['title']}" for n in recent_news[:10]]
+                ctx_parts.append("RECENT NEWS:\n" + "\n".join(news_lines))
+
+            ok_stores = [s["site_name"] for s in site_statuses if s["status"] == "ok"]
+            err_stores = [s["site_name"] for s in site_statuses if s["status"] != "ok"]
+            ctx_parts.append(
+                f"STORE STATUS: {len(ok_stores)} healthy, {len(err_stores)} with errors.\n"
+                f"Healthy: {', '.join(ok_stores[:10])}\n"
+                + (f"Errors: {', '.join(err_stores)}" if err_stores else "")
+            )
+
+            context_block = "\n\n".join(ctx_parts)
+
+            system_prompt = (
+                "You are PokéMonitor, a smart assistant for a Pokemon & One Piece TCG monitoring bot "
+                "focused on Canadian retail (GTA area and online). You have live data from the bot's database "
+                "shown below. Answer the user's question concisely and accurately based on this live data. "
+                "If you don't have enough data to answer confidently, say so. "
+                "Keep responses under 300 words. Use plain text — no markdown, no asterisks, just clean sentences. "
+                "Today's date is " + datetime.now(EST).strftime("%B %d, %Y") + ".\n\n"
+                "LIVE BOT DATA:\n" + context_block
+            )
+
+            api_key = self.config.get("anthropic", {}).get("api_key") or ""
+            import os
+            if not api_key:
+                api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+
+            if not api_key:
+                await self._reply(chat_id, "⚠️ /ask requires an Anthropic API key. Add it to config.json under \"anthropic\": {\"api_key\": \"...\"}.")
+                return
+
+            client = anthropic.AsyncAnthropic(api_key=api_key)
+            response = await client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=512,
+                system=system_prompt,
+                messages=[{"role": "user", "content": question}],
+            )
+
+            answer = response.content[0].text.strip()
+            await self._reply(chat_id, f"🤖 {answer}\n\n<i>Powered by Claude — live data as of {_now_est()}</i>")
+
+        except ImportError:
+            await self._reply(chat_id, "⚠️ anthropic package not installed. Run: pip install anthropic")
+        except Exception as exc:
+            log.error("/ask error: %s", exc)
+            await self._reply(chat_id, f"⚠️ /ask failed: {exc}")
 
     # ------------------------------------------------------------------ #
     # /stores                                                              #

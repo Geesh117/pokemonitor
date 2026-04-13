@@ -249,33 +249,53 @@ class TelegramService:
         return await self.send(msg)
 
     async def send_daily_digest(self, alerts: list, news_items: list) -> bool:
-        total = len(alerts)
-        restocks = sum(1 for a in alerts if a["alert_type"] == "restock")
-        new_prods = sum(1 for a in alerts if a["alert_type"] == "new_product")
-        price_drops = sum(1 for a in alerts if a["alert_type"] == "price_drop")
-        news_count = len(news_items)
+        from datetime import datetime as _dt
+        import pytz as _pytz
+        est = _pytz.timezone("America/Toronto")
+        today = _dt.now(est).strftime("%b %d")
 
-        lines = [
-            f"📊 <b>DAILY DIGEST — {_now_est()}</b>\n",
-            f"Total alerts: {total}",
-            f"  🟢 Restocks: {restocks}",
-            f"  🆕 New products: {new_prods}",
-            f"  💸 Price drops: {price_drops}",
-            f"  📰 News items: {news_count}",
-            "",
-        ]
+        restocks   = [a for a in alerts if a["alert_type"] == "restock"]
+        new_prods  = [a for a in alerts if a["alert_type"] == "new_product"]
+        drops      = [a for a in alerts if a["alert_type"] == "price_drop"]
+        loc_drops  = [a for a in alerts if a["alert_type"] == "drop_location"]
 
-        if alerts:
-            lines.append("<b>Recent Product Alerts:</b>")
-            for a in alerts[:10]:
-                price_str = f"${a['price']:.2f}" if a.get("price") else "N/A"
-                lines.append(f"• [{a['alert_type']}] {a['title']} — {price_str} @ {a['site_name']}")
+        lines = [f"☀️ <b>TCG Briefing — {today}</b>\n"]
+
+        if loc_drops:
+            lines.append(f"📍 <b>Local Drops ({len(loc_drops)})</b>")
+            for a in loc_drops[:4]:
+                lines.append(f"   • {a['title'][:70]}")
+            lines.append("")
+
+        if restocks:
+            lines.append(f"🟢 <b>Restocks ({len(restocks)})</b>")
+            for a in restocks[:4]:
+                p = f"${a['price']:.2f}" if a.get("price") else "?"
+                lines.append(f"   • {a['title'][:55]} — {p} @ {a['site_name']}")
+            lines.append("")
+
+        if new_prods:
+            lines.append(f"🆕 <b>New Listings ({len(new_prods)})</b>")
+            for a in new_prods[:4]:
+                p = f"${a['price']:.2f}" if a.get("price") else "?"
+                lines.append(f"   • {a['title'][:55]} — {p} @ {a['site_name']}")
+            lines.append("")
+
+        if drops:
+            lines.append(f"💰 <b>Price Drops ({len(drops)})</b>")
+            for a in drops[:3]:
+                p = f"${a['price']:.2f}" if a.get("price") else "?"
+                lines.append(f"   • {a['title'][:55]} → {p} @ {a['site_name']}")
+            lines.append("")
 
         if news_items:
+            lines.append(f"📰 <b>{len(news_items)} news items</b> — /news to read")
             lines.append("")
-            lines.append("<b>Recent News:</b>")
-            for n in news_items[:10]:
-                lines.append(f"• {n['title']} ({n['source_name']})")
+
+        if not any([restocks, new_prods, drops, loc_drops, news_items]):
+            lines.append("😴 Quiet day — nothing notable in the last 24h.")
+        else:
+            lines.append("<i>/drops • /prices • /ask anything</i>")
 
         return await self.send("\n".join(lines))
 

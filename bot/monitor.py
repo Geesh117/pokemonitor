@@ -233,6 +233,17 @@ class Monitor:
                 in_stock=product.in_stock,
             )
 
+            # Record price history on first seen or any change
+            if change["is_new"] or change["price_changed"] or change["stock_changed"]:
+                self.db.record_price_history(
+                    site_key=site_key,
+                    product_id=product.product_id,
+                    title=product.title,
+                    site_name=product.site_name,
+                    price=product.price,
+                    in_stock=product.in_stock,
+                )
+
             if self.test_mode:
                 self._print_test_product(product, change)
                 continue
