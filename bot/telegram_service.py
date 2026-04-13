@@ -159,6 +159,53 @@ class TelegramService:
         )
         return await self.send(msg)
 
+    async def send_drop_location(
+        self,
+        source_name: str,
+        title: str,
+        url: str,
+    ) -> bool:
+        msg = (
+            f"📍 <b>LOCAL DROP ALERT</b>\n"
+            f"📡 <b>Source:</b> {source_name}\n"
+            f"📋 <b>Post:</b> {title}\n"
+            f"🔗 <b>URL:</b> {url}\n"
+            f"🕐 <b>Time:</b> {_now_est()}"
+        )
+        return await self.send(msg)
+
+    async def send_online_stock_alert(
+        self,
+        product_name: str,
+        retailer: str,
+        location: str,
+        price: Optional[float],
+        url: str,
+        alert_type: str = "restock",
+        old_price: Optional[float] = None,
+    ) -> bool:
+        price_str = f"${price:.2f} CAD" if price else "N/A"
+        icon = "🟢" if alert_type == "restock" else "🆕"
+        label = "RESTOCK" if alert_type == "restock" else "NOW AVAILABLE"
+        loc_str = f" — {location}" if location and location not in ("Online", "Canada", "Ontario") else ""
+        price_line = ""
+        if alert_type == "price_drop" and old_price and price:
+            drop_pct = ((old_price - price) / old_price) * 100
+            price_line = (
+                f"💰 <b>Price:</b> <s>${old_price:.2f}</s> → ${price:.2f} CAD  ({drop_pct:.0f}% off)\n"
+            )
+        else:
+            price_line = f"💰 <b>Price:</b> {price_str}\n"
+        msg = (
+            f"{icon} <b>STOCK TRACKER — {label}</b>\n"
+            f"🏪 <b>Retailer:</b> {retailer}{loc_str}\n"
+            f"📦 <b>Product:</b> {product_name}\n"
+            f"{price_line}"
+            f"🔗 <b>URL:</b> {url}\n"
+            f"🕐 <b>Time:</b> {_now_est()}"
+        )
+        return await self.send(msg)
+
     async def send_news(
         self,
         source_name: str,

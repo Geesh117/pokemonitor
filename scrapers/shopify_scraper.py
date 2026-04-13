@@ -75,16 +75,23 @@ class ShopifyScraper(BaseScraper):
                         if p:
                             all_prices.append(p)
 
+                min_variant_id = None
                 if available_variants:
-                    # Cheapest in-stock price
-                    in_stock_prices = []
+                    # Cheapest in-stock price; track which variant it came from
                     for v in available_variants:
                         p = parse_price(str(v.get("price", "")))
-                        if p:
-                            in_stock_prices.append(p)
-                    price = min(in_stock_prices) if in_stock_prices else (min(all_prices) if all_prices else None)
+                        if p is not None:
+                            if price is None or p < price:
+                                price = p
+                                min_variant_id = v.get("id")
+                    if price is None and all_prices:
+                        price = min(all_prices)
                 elif all_prices:
                     price = min(all_prices)
+
+                # Link directly to the variant so the page shows the right price
+                if min_variant_id:
+                    product_url = f"{product_url}?variant={min_variant_id}"
 
                 # Featured image
                 images = item.get("images", [])

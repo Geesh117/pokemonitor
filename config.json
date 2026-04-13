@@ -33,6 +33,13 @@
       "trainer box",
       "collection box",
       "build & battle",
+      "ultra premium",
+      "upc",
+      "premium collection",
+      "special collection",
+      "jumbo collection",
+      "super premium",
+      "bundle",
       "op-",
       "eb01",
       "eb02"
@@ -41,6 +48,45 @@
     "game_filter": ["pokemon", "pokémon", "one piece", "onepiece", "op-", "eb0"]
   },
   "news_alerts_enabled": false,
+  "drop_alerts_enabled": true,
+  "drop_check_interval_seconds": 300,
+  "drop_alerts": {
+    "location_keywords": [
+      "toronto", "gta", "mississauga", "brampton", "oakville", "burlington",
+      "hamilton", "guelph", "kitchener", "waterloo", "cambridge", "brantford",
+      "vaughan", "richmond hill", "markham", "scarborough", "etobicoke",
+      "pickering", "ajax", "whitby", "oshawa", "durham", "barrie",
+      "newmarket", "aurora", "woodbridge", "thornhill", "concord",
+      "milton", "georgetown", "halton", "ontario", "canada"
+    ],
+    "drop_keywords": [
+      "drop", "restock", "in stock", "instock", "found", "spotted",
+      "picked up", "available", "shelf", "release day", "launch day",
+      "street date", "just got", "just found", "walmart", "costco",
+      "indigo", "winners", "best buy", "target", "dollarama",
+      "just dropped", "just restocked", "hit shelves", "on shelves",
+      "saw at", "seen at", "grabbed at", "warehouse", "floor",
+      "spc", "prismatic", "surging sparks", "stellar crown",
+      "op06", "op07", "op08", "op09", "op10",
+      "extra booster", "heroines",
+      "upc", "ultra premium", "premium collection", "special collection",
+      "jumbo", "super premium", "big box", "sealed case", "display box",
+      "booster bundle", "booster box", "etb", "elite trainer"
+    ],
+    "game_keywords": ["pokemon", "pokémon", "one piece", "onepiece", "tcg", "ptcg"]
+  },
+  "drop_sources": {
+    "stocktrack": {
+      "enabled": true,
+      "type": "stocktrack",
+      "name": "StockTrack.ca (Costco/Walmart Canada)"
+    },
+    "nowinstock": {
+      "enabled": true,
+      "type": "nowinstock",
+      "name": "NowinStock.net (Amazon/BestBuy CA)"
+    }
+  },
   "usd_cad_fallback_rate": 1.39,
   "min_price_drop_pct": 2.0,
   "min_price_drop_abs_cad": 5.0,
@@ -79,8 +125,9 @@
     "amazon_ca": {
       "enabled": true,
       "urls": [
-        "https://www.amazon.ca/s?k=pokemon+booster+box&rh=p_6%3AA3DWYIK6Y9EEQB",
-        "https://www.amazon.ca/s?k=one+piece+tcg&rh=p_6%3AA3DWYIK6Y9EEQB"
+        "https://www.amazon.ca/s?k=pokemon+booster+box&i=toys",
+        "https://www.amazon.ca/s?k=pokemon+elite+trainer+box&i=toys",
+        "https://www.amazon.ca/s?k=one+piece+card+game+booster+box&i=toys"
       ],
       "type": "playwright",
       "name": "Amazon Canada"
@@ -244,6 +291,16 @@
       "type": "shopify",
       "name": "Enter the Battlefield",
       "currency": "USD"
+    },
+    "gamestop_ca": {
+      "enabled": true,
+      "urls": [
+        "https://www.gamestop.ca/en/search/?q=pokemon+booster+box",
+        "https://www.gamestop.ca/en/search/?q=pokemon+elite+trainer",
+        "https://www.gamestop.ca/en/search/?q=one+piece+card+game"
+      ],
+      "type": "gamestop",
+      "name": "GameStop Canada"
     }
   },
   "news_sources": {
@@ -283,6 +340,66 @@
       "url": "https://www.reddit.com/r/OnePieceTCG/new.json?limit=25",
       "type": "reddit",
       "name": "r/OnePieceTCG"
+    },
+    "reddit_canada_tcg": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/PokemonTCGCanada/new.json?limit=25",
+      "type": "reddit",
+      "name": "r/PokemonTCGCanada"
+    },
+    "reddit_costco": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/Costco/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/Costco"
+    },
+    "reddit_costco_canada": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/CostcoCanada/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/CostcoCanada"
+    },
+    "reddit_tcg_collectors": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/pokemoncardcollectors/new.json?limit=25",
+      "type": "reddit",
+      "name": "r/pokemoncardcollectors"
+    },
+    "reddit_pkmntradescanada": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/PKMNTCGTrades/new.json?limit=25",
+      "type": "reddit",
+      "name": "r/PKMNTCGTrades"
+    },
+    "reddit_flipping_canada": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/flippingcanada/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/flippingcanada"
+    },
+    "reddit_bapcs_canada": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/bapcsalescanada/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/bapcsalescanada"
+    },
+    "pokemon_official_news": {
+      "enabled": true,
+      "url": "https://www.pokemon.com/us/pokemon-news/",
+      "type": "scrape",
+      "name": "Pokemon.com News"
+    },
+    "google_news_pokemon_canada": {
+      "enabled": true,
+      "url": "https://news.google.com/rss/search?q=pokemon+TCG+canada+drop+costco&hl=en-CA&gl=CA&ceid=CA:en",
+      "type": "rss",
+      "name": "Google News – Pokemon Canada"
+    },
+    "google_news_onepiece_canada": {
+      "enabled": true,
+      "url": "https://news.google.com/rss/search?q=%22one+piece%22+card+game+canada+restock&hl=en-CA&gl=CA&ceid=CA:en",
+      "type": "rss",
+      "name": "Google News – One Piece Canada"
     },
     "tcgplayer_news": {
       "enabled": true,

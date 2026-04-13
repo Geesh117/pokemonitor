@@ -130,8 +130,9 @@ class NewsScraper(BaseScraper):
 
             if not title or not link:
                 continue
-            # Filter very-low-score posts (new posts may have score 1-3 briefly)
-            if score < 1:
+            # Allow score 0+ so brand-new posts (just submitted) are caught immediately
+            # Drop posts need to arrive before shelves are cleared
+            if score < 0:
                 continue
 
             items.append(NewsItem(

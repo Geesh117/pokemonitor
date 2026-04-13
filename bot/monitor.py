@@ -155,12 +155,26 @@ class Monitor:
                     delay_min=1,
                     delay_max=3,
                 )
+            elif scraper_type == "stocktrack":
+                from scrapers.drop_scraper import StockTrackScraper
+                self._scrapers[scraper_type] = StockTrackScraper(
+                    proxies=self.proxies,
+                    delay_min=3,
+                    delay_max=7,
+                )
+            elif scraper_type == "nowinstock":
+                from scrapers.drop_scraper import NowinStockScraper
+                self._scrapers[scraper_type] = NowinStockScraper(
+                    proxies=self.proxies,
+                    delay_min=3,
+                    delay_max=7,
+                )
         return self._scrapers.get(scraper_type)
 
     def _get_playwright_scraper(self, site_key: str):
         from scrapers.playwright_scraper import (
             WalmartScraper, CostcoScraper, AmazonScraper,
-            IndigoScraper, PokemonCenterScraper,
+            IndigoScraper, PokemonCenterScraper, GameStopScraper,
         )
         mapping = {
             "walmart_ca": WalmartScraper,
@@ -168,6 +182,7 @@ class Monitor:
             "amazon_ca": AmazonScraper,
             "indigo_ca": IndigoScraper,
             "pokemon_center": PokemonCenterScraper,
+            "gamestop_ca": GameStopScraper,
         }
         cls = mapping.get(site_key)
         if cls is None:
@@ -343,7 +358,7 @@ class Monitor:
                 elif scraper_type == "bestbuy":
                     scraper = self._get_scraper("bestbuy")
                     products = await scraper.scrape_url(url, site_key, site_name)
-                elif scraper_type == "playwright":
+                elif scraper_type in ("playwright", "gamestop"):
                     scraper = self._get_playwright_scraper(site_key)
                     if scraper:
                         products = await scraper.scrape_url(url, site_key, site_name)
@@ -376,6 +391,18 @@ class Monitor:
     # News check                                                           #
     # ------------------------------------------------------------------ #
 
+    def _is_local_drop_post(self, title: str) -> bool:
+        """Return True if a post title mentions a GTA/Ontario location AND a drop keyword AND a game."""
+        drop_cfg = self.config.get("drop_alerts", {})
+        loc_kws = drop_cfg.get("location_keywords", [])
+        drop_kws = drop_cfg.get("drop_keywords", [])
+        game_kws = drop_cfg.get("game_keywords", ["pokemon", "pokémon", "one piece", "tcg"])
+        t = title.lower()
+        has_location = any(kw in t for kw in loc_kws)
+        has_drop = any(kw in t for kw in drop_kws)
+        has_game = any(kw in t for kw in game_kws)
+        return has_location and has_drop and has_game
+
     async def check_news(self):
         news_sources = self.config.get("news_sources", {})
         news_scraper = self._get_scraper("news")
@@ -383,6 +410,8 @@ class Monitor:
             from scrapers.news_scraper import NewsScraper
             news_scraper = NewsScraper(proxies=self.proxies, delay_min=1, delay_max=3)
             self._scrapers["news"] = news_scraper
+
+        drop_alerts_enabled = self.config.get("drop_alerts_enabled", False)
 
         for source_key, source_config in news_sources.items():
             if not source_config.get("enabled", True):
@@ -400,7 +429,22 @@ class Monitor:
                         published=item.published,
                     )
                     if self.test_mode:
-                        print(f"  [NEWS] [{item.source_name}] {item.title}\n    URL: {item.url}")
+                        tag = "[DROP]" if self._is_local_drop_post(item.title) else "[NEWS]"
+                        print(f"  {tag} [{item.source_name}] {item.title}\n    URL: {item.url}")
+                        continue
+
+                    # Local GTA drop posts bypass the news_alerts_enabled flag
+                    if drop_alerts_enabled and self._is_local_drop_post(item.title):
+                        sent = await self.tg.send_drop_location(item.source_name, item.title, item.url)
+                        if sent:
+                            self.db.mark_news_alerted(item.url)
+                            self.db.log_alert(
+                                site_key=source_key,
+                                site_name=item.source_name,
+                                title=item.title,
+                                alert_type="drop_location",
+                                url=item.url,
+                            )
                         continue
 
                     if not self.config.get("news_alerts_enabled", True):
@@ -419,6 +463,107 @@ class Monitor:
             except Exception as exc:
                 log.error("News check error for %s: %s", source_key, exc)
             await asyncio.sleep(random.uniform(1, 3))
+
+    # ------------------------------------------------------------------ #
+    # StockTrack drop source check                                         #
+    # ------------------------------------------------------------------ #
+
+    async def check_drop_sources(self):
+        drop_sources = self.config.get("drop_sources", {})
+        for source_key, source_cfg in drop_sources.items():
+            if not source_cfg.get("enabled", True):
+                continue
+            source_type = source_cfg.get("type")
+            if source_type not in ("stocktrack", "nowinstock"):
+                continue
+
+            site_name = source_cfg["name"]
+            scraper = self._get_scraper(source_type)
+            if not scraper:
+                continue
+
+            try:
+                products = await scraper.scrape_all(source_key, site_name)
+                log.info("%s: scraped %d products", site_name, len(products))
+
+                for product in products:
+                    change = self.db.upsert_product(
+                        site_key=source_key,
+                        site_name=site_name,
+                        product_id=product.product_id,
+                        title=product.title,
+                        url=product.url,
+                        price=product.price,
+                        in_stock=product.in_stock,
+                    )
+
+                    if self.test_mode:
+                        status = "IN" if product.in_stock else "OUT"
+                        flags = []
+                        if change["is_new"]:
+                            flags.append("NEW")
+                        if change["stock_changed"]:
+                            flags.append("STOCK CHANGED")
+                        print(
+                            f"  [StockTrack] {product.title} | "
+                            f"{'${:.2f}'.format(product.price) if product.price else 'N/A'} | "
+                            f"{status} | {', '.join(flags) or 'unchanged'}"
+                        )
+                        continue
+
+                    cooldown_ok = not self.db.was_recently_alerted(
+                        source_key, product.product_id, self.alert_cooldown_hours
+                    )
+                    if not cooldown_ok:
+                        continue
+
+                    # Extract retailer/location from raw metadata
+                    raw = product.raw if hasattr(product, "raw") and product.raw else {}
+                    retailer = raw.get("retailer", site_name)
+                    location = raw.get("location", "Online")
+
+                    alert_type = None
+                    if change["is_new"] and product.in_stock:
+                        alert_type = "new_product"
+                    elif change["stock_changed"] and product.in_stock and not change["old_in_stock"]:
+                        alert_type = "restock"
+                    elif (
+                        change["price_changed"]
+                        and product.price is not None
+                        and change["old_price"] is not None
+                        and product.price < change["old_price"]
+                        and product.in_stock
+                    ):
+                        drop_abs = change["old_price"] - product.price
+                        drop_pct = drop_abs / change["old_price"] * 100
+                        if drop_pct >= self.min_price_drop_pct or drop_abs >= self.min_price_drop_abs:
+                            alert_type = "price_drop"
+
+                    if alert_type:
+                        # Strip " @ Retailer [Location]" from the display name
+                        display_name = product.title.split(" @ ")[0] if " @ " in product.title else product.title
+                        sent = await self.tg.send_online_stock_alert(
+                            product_name=display_name,
+                            retailer=retailer,
+                            location=location,
+                            price=product.price,
+                            url=product.url,
+                            alert_type=alert_type,
+                            old_price=change.get("old_price"),
+                        )
+                        if sent:
+                            self.db.mark_alerted(source_key, product.product_id, alert_type)
+                            self.db.log_alert(
+                                site_key=source_key,
+                                site_name=site_name,
+                                title=product.title,
+                                alert_type=alert_type,
+                                product_id=product.product_id,
+                                url=product.url,
+                                price=product.price,
+                            )
+            except Exception as exc:
+                log.error("Drop source check failed for %s: %s", source_key, exc)
 
     # ------------------------------------------------------------------ #
     # Health check                                                         #
@@ -477,7 +622,10 @@ class Monitor:
             print(f"\n[{site_config['name']}]")
             await self.check_site(site_key, site_config)
 
-        print("\n--- News Sources ---")
+        print("\n--- Drop Sources (StockTrack / NowinStock) ---")
+        await self.check_drop_sources()
+
+        print("\n--- News / Reddit Sources ---")
         await self.check_news()
 
         print("\n=== TEST RUN COMPLETE ===")
@@ -491,8 +639,10 @@ class Monitor:
             await self.tg.send("🤖 <b>PokéMonitor started!</b> Bot is now monitoring stores and news.")
 
         sites = self.config.get("sites", {})
+        drop_interval = self.config.get("drop_check_interval_seconds", 300)
         last_news_check = datetime.utcnow() - timedelta(seconds=self.news_max)
         last_health_check = datetime.utcnow() - timedelta(seconds=self.health_interval)
+        last_drop_check = datetime.utcnow() - timedelta(seconds=drop_interval)
 
         while self._running:
             # Retail sites
@@ -503,8 +653,14 @@ class Monitor:
                 # Stagger inter-site delay
                 await asyncio.sleep(random.uniform(self.delay_min, self.delay_max))
 
-            # News check
             now = datetime.utcnow()
+
+            # Drop sources (StockTrack / NowinStock) — every 5 min
+            if (now - last_drop_check).total_seconds() >= drop_interval:
+                await self.check_drop_sources()
+                last_drop_check = datetime.utcnow()
+
+            # News / Reddit check (includes local drop post detection)
             if (now - last_news_check).total_seconds() >= random.uniform(self.news_min, self.news_max):
                 await self.check_news()
                 last_news_check = datetime.utcnow()
