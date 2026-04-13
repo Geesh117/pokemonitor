@@ -90,6 +90,28 @@ class TelegramService:
     # Formatted alert helpers                                              #
     # ------------------------------------------------------------------ #
 
+    async def send_pokemon_center_alert(
+        self,
+        product_name: str,
+        price: Optional[float],
+        url: str,
+        alert_type: str = "restock",
+        image_url: Optional[str] = None,
+    ) -> bool:
+        price_str = f"${price:.2f} CAD" if price else "N/A"
+        label = "RESTOCK" if alert_type == "restock" else "NEW LISTING"
+        msg = (
+            f"🚨🚨 <b>POKEMON CENTER CA — {label}</b> 🚨🚨\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📦 <b>{product_name}</b>\n"
+            f"💰 <b>Price:</b> {price_str}\n"
+            f"🔗 <b>BUY NOW:</b> {url}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚡ Ships direct from Pokemon — act fast!\n"
+            f"🕐 {_now_est()}"
+        )
+        return await self.send_with_photo(msg, image_url)
+
     async def send_restock(
         self,
         site_name: str,

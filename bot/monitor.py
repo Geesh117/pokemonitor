@@ -286,6 +286,18 @@ class Monitor:
 
     async def _send_product_alert(self, product: Product, alert_type: str, change: dict) -> bool:
         img = product.image_url
+        site_key = product.site_key if hasattr(product, "site_key") else ""
+
+        # Pokemon Center gets a special high-priority alert format
+        if site_key == "pokemon_center" and alert_type in ("restock", "new_product"):
+            return await self.tg.send_pokemon_center_alert(
+                product_name=product.title,
+                price=product.price,
+                url=product.url,
+                alert_type=alert_type,
+                image_url=img,
+            )
+
         if alert_type == "restock":
             return await self.tg.send_restock(
                 product.site_name, product.title, product.price, product.url, img
@@ -673,6 +685,17 @@ class Monitor:
 
         print("\n=== TEST RUN COMPLETE ===")
 
+    def _get_retail_interval(self) -> float:
+        """Return a sleep interval (seconds) based on time of day.
+
+        Weekdays 2–5 pm EST = online restock window → scrape faster (30–45s).
+        All other times → normal cadence (retail_min–retail_max).
+        """
+        now_est = datetime.now(EST)
+        if now_est.weekday() < 5 and 14 <= now_est.hour < 17:
+            return random.uniform(30, 45)
+        return random.uniform(self.retail_min, self.retail_max)
+
     async def run(self):
         """Main production loop."""
         self._running = True
@@ -722,8 +745,8 @@ class Monitor:
             # Daily digest
             await self._maybe_send_daily_digest()
 
-            # Wait before next full retail cycle
-            wait = random.uniform(self.retail_min, self.retail_max)
+            # Wait before next full retail cycle — faster during online restock window
+            wait = self._get_retail_interval()
             log.debug("Sleeping %.1fs before next cycle", wait)
             await asyncio.sleep(wait)
 

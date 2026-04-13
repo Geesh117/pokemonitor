@@ -99,7 +99,11 @@
       "reddit_canada_tcg",
       "reddit_costco_canada",
       "reddit_flipping_canada",
-      "reddit_lbabinz"
+      "reddit_lbabinz",
+      "reddit_toronto",
+      "reddit_toronto_deals",
+      "reddit_mississauga",
+      "reddit_brampton"
     ],
     "game_keywords": ["pokemon", "pokémon", "one piece", "onepiece", "tcg", "ptcg"]
   },
@@ -422,6 +426,30 @@
       "url": "https://www.reddit.com/r/bapcsalescanada/new.json?limit=50",
       "type": "reddit",
       "name": "r/bapcsalescanada"
+    },
+    "reddit_toronto": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/toronto/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/toronto"
+    },
+    "reddit_toronto_deals": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/TorontoDeals/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/TorontoDeals"
+    },
+    "reddit_mississauga": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/mississauga/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/mississauga"
+    },
+    "reddit_brampton": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/brampton/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/brampton"
     },
     "pokemon_official_news": {
       "enabled": true,
