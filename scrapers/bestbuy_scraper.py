@@ -45,20 +45,30 @@ class BestBuyScraper:
 
         try:
             await _stealth_page(page)
-            await page.goto(url, wait_until="domcontentloaded", timeout=35000)
+            await page.goto(url, wait_until="networkidle", timeout=40000)
             await _dismiss_consent(page)
-            await page.wait_for_timeout(random.randint(2000, 3500))
+            await page.wait_for_timeout(random.randint(3000, 5000))
 
             title = await page.title()
-            if "access denied" in title.lower() or "blocked" in title.lower():
+            page_url = page.url
+            if any(kw in title.lower() for kw in ["access denied", "blocked", "robot", "captcha"]):
                 log.warning(
-                    "Best Buy: Akamai bot protection triggered for %s. "
-                    "Add residential proxies to config.json to bypass.", url
+                    "Best Buy: bot protection triggered. title=%r url=%s. "
+                    "Residential proxy required to bypass Akamai.", title, page_url
                 )
                 return []
 
+            # Wait for product grid to appear
+            try:
+                await page.wait_for_selector(
+                    '[data-automation="productListingV2"], .x-productListItem, [class*="productItemContainer"]',
+                    timeout=10000,
+                )
+            except Exception:
+                log.info("Best Buy: product selector timeout for %s — trying anyway", url)
+
             # Scroll to load lazy products
-            for _ in range(2):
+            for _ in range(3):
                 await page.keyboard.press("End")
                 await page.wait_for_timeout(1200)
 
@@ -82,6 +92,11 @@ class BestBuyScraper:
             if not products:
                 html = await page.content()
                 products = _parse_bestbuy_html(html, site_key, site_name, url)
+                if not products:
+                    log.info(
+                        "Best Buy 0 products. title=%r url=%s html[:2000]=%s",
+                        title, page_url, html[:2000],
+                    )
 
         except Exception as exc:
             log.error("Best Buy scrape error for %s: %s", url, exc)
@@ -89,7 +104,7 @@ class BestBuyScraper:
             await page.close()
             await context.close()
 
-        log.debug("Best Buy %s: found %d products", url, len(products))
+        log.info("Best Buy %s: found %d products", url, len(products))
         return products
 
 

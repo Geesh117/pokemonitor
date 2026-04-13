@@ -71,7 +71,31 @@
       "extra booster", "heroines",
       "upc", "ultra premium", "premium collection", "special collection",
       "jumbo", "super premium", "big box", "sealed case", "display box",
-      "booster bundle", "booster box", "etb", "elite trainer"
+      "booster bundle", "booster box", "etb", "elite trainer",
+      "pallet", "shipment", "truck", "delivery", "receiving",
+      "stocked", "just stocked", "freshly stocked", "new stock"
+    ],
+    "advance_keywords": [
+      "this saturday", "this sunday", "this friday", "this weekend",
+      "tomorrow", "next week", "this week", "coming this", "dropping this",
+      "doors open", "opens at", "opening at", "store opens", "they open",
+      "heads up", "fyi", "psa", "word is", "heard that", "heard it",
+      "rumour", "rumor", "confirmed", "apparently", "supposedly",
+      "spreading the word", "pass it on", "tell your friends", "let people know",
+      "advance notice", "giving notice", "fair warning",
+      "limited units", "limited stock", "x units", "units available",
+      "units per", "per person", "per membership", "limit per",
+      "pre-drop", "pre release", "launch event", "release event",
+      "arriving", "arrives", "will have", "gonna have", "should have",
+      "getting it in", "coming in", "shipment coming", "pallet coming",
+      "6am", "7am", "8am", "9am", "opening time", "first come",
+      "line up", "lineup", "queue", "camping out"
+    ],
+    "canada_only_sources": [
+      "reddit_canada_tcg",
+      "reddit_costco_canada",
+      "reddit_flipping_canada",
+      "reddit_lbabinz"
     ],
     "game_keywords": ["pokemon", "pokémon", "one piece", "onepiece", "tcg", "ptcg"]
   },
@@ -113,7 +137,7 @@
       "name": "Costco Canada"
     },
     "bestbuy_ca": {
-      "enabled": false,
+      "enabled": true,
       "urls": [
         "https://www.bestbuy.ca/en-ca/category/pokemon-tcg/10857174",
         "https://www.bestbuy.ca/en-ca/shop/video-games/pokemon-trading-card-games",
@@ -370,6 +394,18 @@
       "url": "https://www.reddit.com/r/PKMNTCGTrades/new.json?limit=25",
       "type": "reddit",
       "name": "r/PKMNTCGTrades"
+    },
+    "reddit_lbabinz": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/lbabinz/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/lbabinz"
+    },
+    "reddit_canada_deals": {
+      "enabled": true,
+      "url": "https://www.reddit.com/r/CanadaDeals/new.json?limit=50",
+      "type": "reddit",
+      "name": "r/CanadaDeals"
     },
     "reddit_flipping_canada": {
       "enabled": true,

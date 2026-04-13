@@ -391,17 +391,48 @@ class Monitor:
     # News check                                                           #
     # ------------------------------------------------------------------ #
 
-    def _is_local_drop_post(self, title: str) -> bool:
-        """Return True if a post title mentions a GTA/Ontario location AND a drop keyword AND a game."""
-        drop_cfg = self.config.get("drop_alerts", {})
-        loc_kws = drop_cfg.get("location_keywords", [])
-        drop_kws = drop_cfg.get("drop_keywords", [])
-        game_kws = drop_cfg.get("game_keywords", ["pokemon", "pokémon", "one piece", "tcg"])
+    def _is_local_drop_post(self, title: str, source_key: str = "") -> bool:
+        """
+        Return True if this post is worth sending as a drop alert.
+
+        Detection rules (all require a game keyword match first):
+          1. Standard:             location + drop keyword   (in-store find, live restock)
+          2. Advance intel:        location + advance word   (upcoming drop, time/units mentioned)
+          3. Canada-only source + drop keyword               (sub is Canada-specific, no city needed)
+          4. Canada-only source + advance word               (upcoming drop in CA-specific sub)
+        """
+        drop_cfg    = self.config.get("drop_alerts", {})
+        loc_kws     = drop_cfg.get("location_keywords", [])
+        drop_kws    = drop_cfg.get("drop_keywords", [])
+        advance_kws = drop_cfg.get("advance_keywords", [])
+        game_kws    = drop_cfg.get("game_keywords", ["pokemon", "pokémon", "one piece", "tcg"])
+        ca_sources  = drop_cfg.get("canada_only_sources", [])
+
         t = title.lower()
+
+        # Game must always be present
+        if not any(kw in t for kw in game_kws):
+            return False
+
         has_location = any(kw in t for kw in loc_kws)
-        has_drop = any(kw in t for kw in drop_kws)
-        has_game = any(kw in t for kw in game_kws)
-        return has_location and has_drop and has_game
+        has_drop     = any(kw in t for kw in drop_kws)
+        has_advance  = any(kw in t for kw in advance_kws)
+        is_ca_source = source_key in ca_sources
+
+        # Rule 1: live in-store find / restock with a specific location
+        if has_location and has_drop:
+            return True
+        # Rule 2: advance intel with specific location ("Costco Newmarket this Saturday 6am")
+        if has_location and has_advance:
+            return True
+        # Rule 3: inherently Canadian sub — location is implicit, just needs a drop signal
+        if is_ca_source and has_drop:
+            return True
+        # Rule 4: inherently Canadian sub + advance intel ("Pokemon ETBs dropping this weekend")
+        if is_ca_source and has_advance:
+            return True
+
+        return False
 
     async def check_news(self):
         news_sources = self.config.get("news_sources", {})
@@ -429,12 +460,12 @@ class Monitor:
                         published=item.published,
                     )
                     if self.test_mode:
-                        tag = "[DROP]" if self._is_local_drop_post(item.title) else "[NEWS]"
+                        tag = "[DROP]" if self._is_local_drop_post(item.title, source_key) else "[NEWS]"
                         print(f"  {tag} [{item.source_name}] {item.title}\n    URL: {item.url}")
                         continue
 
                     # Local GTA drop posts bypass the news_alerts_enabled flag
-                    if drop_alerts_enabled and self._is_local_drop_post(item.title):
+                    if drop_alerts_enabled and self._is_local_drop_post(item.title, source_key):
                         sent = await self.tg.send_drop_location(item.source_name, item.title, item.url)
                         if sent:
                             self.db.mark_news_alerted(item.url)
