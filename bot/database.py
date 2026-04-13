@@ -160,6 +160,22 @@ class Database:
                 (now, alert_type, site_key, product_id),
             )
 
+    def search_products(self, query: str, limit: int = 15) -> list:
+        """Full-text search across product titles. Returns in-stock results first."""
+        terms = query.lower().split()
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM products ORDER BY in_stock DESC, last_seen DESC LIMIT 500"
+            ).fetchall()
+        results = []
+        for row in rows:
+            title_lower = (row["title"] or "").lower()
+            if all(t in title_lower for t in terms):
+                results.append(dict(row))
+            if len(results) >= limit:
+                break
+        return results
+
     def get_all_products(self, site_key: Optional[str] = None) -> list:
         with self._conn() as conn:
             if site_key:

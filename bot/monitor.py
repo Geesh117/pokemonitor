@@ -87,6 +87,7 @@ class Monitor:
         self.tg = TelegramService(
             token=config["telegram"]["bot_token"],
             chat_id=config["telegram"]["chat_id"],
+            extra_chat_ids=config["telegram"].get("extra_chat_ids", []),
         )
 
         # Config shortcuts
@@ -667,7 +668,13 @@ class Monitor:
         log.info("PokéMonitor starting (test_mode=%s)", self.test_mode)
 
         if not self.test_mode:
-            await self.tg.send("🤖 <b>PokéMonitor started!</b> Bot is now monitoring stores and news.")
+            # Start Telegram command handler as background task
+            from bot.command_handler import CommandHandler
+            cmd_handler = CommandHandler(self.config, self.db, self.tg)
+            asyncio.create_task(cmd_handler.poll())
+            log.info("Telegram command handler started")
+
+            await self.tg.send("🤖 <b>PokéMonitor started!</b> Bot is now monitoring stores and news.\n\nType /help to see available commands.")
 
         sites = self.config.get("sites", {})
         drop_interval = self.config.get("drop_check_interval_seconds", 300)

@@ -21,9 +21,11 @@ class TelegramService:
     BASE_URL = "https://api.telegram.org/bot{token}/sendMessage"
     PHOTO_URL = "https://api.telegram.org/bot{token}/sendPhoto"
 
-    def __init__(self, token: str, chat_id: str):
+    def __init__(self, token: str, chat_id: str, extra_chat_ids: Optional[list] = None):
         self.token = token
-        self.chat_id = chat_id
+        self.chat_id = str(chat_id)
+        # All chat IDs that receive push alerts
+        self.all_chat_ids: list = [self.chat_id] + [str(x) for x in (extra_chat_ids or [])]
         self._session: Optional[aiohttp.ClientSession] = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -33,11 +35,11 @@ class TelegramService:
             )
         return self._session
 
-    async def send(self, text: str, disable_preview: bool = True) -> bool:
-        """Send a raw message. Returns True on success."""
+    async def _send_to(self, chat_id: str, text: str, disable_preview: bool = True) -> bool:
+        """Send a message to a specific chat ID."""
         url = self.BASE_URL.format(token=self.token)
         payload = {
-            "chat_id": self.chat_id,
+            "chat_id": chat_id,
             "text": text,
             "parse_mode": "HTML",
             "disable_web_page_preview": disable_preview,
@@ -48,11 +50,19 @@ class TelegramService:
                 if resp.status == 200:
                     return True
                 body = await resp.text()
-                log.error("Telegram error %s: %s", resp.status, body)
+                log.error("Telegram error %s to chat %s: %s", resp.status, chat_id, body)
                 return False
         except Exception as exc:
-            log.error("Telegram send failed: %s", exc)
+            log.error("Telegram send failed to %s: %s", chat_id, exc)
             return False
+
+    async def send(self, text: str, disable_preview: bool = True) -> bool:
+        """Broadcast a message to all authorised chat IDs. Returns True if at least one succeeds."""
+        results = await asyncio.gather(
+            *[self._send_to(cid, text, disable_preview) for cid in self.all_chat_ids],
+            return_exceptions=True,
+        )
+        return any(r is True for r in results)
 
     async def send_with_photo(self, caption: str, image_url: Optional[str]) -> bool:
         """Send a photo with caption. Falls back to plain text if no image or sendPhoto fails."""
