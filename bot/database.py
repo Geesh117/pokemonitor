@@ -95,10 +95,19 @@ class Database:
                     recorded_at TEXT    NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS watches (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    chat_id    TEXT NOT NULL,
+                    query      TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(chat_id, query)
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_products_site_key  ON products(site_key);
                 CREATE INDEX IF NOT EXISTS idx_alerts_sent_at     ON alerts(sent_at);
                 CREATE INDEX IF NOT EXISTS idx_news_first_seen    ON news(first_seen);
                 CREATE INDEX IF NOT EXISTS idx_price_hist_product ON price_history(site_key, product_id);
+                CREATE INDEX IF NOT EXISTS idx_watches_chat_id    ON watches(chat_id);
             """)
         log.info("Database initialised at %s", self.db_path)
 
@@ -377,3 +386,85 @@ class Database:
                 "SELECT last_check FROM site_status WHERE site_key=?", (site_key,)
             ).fetchone()
             return row["last_check"] if row else None
+
+    # ------------------------------------------------------------------ #
+    # Watches                                                              #
+    # ------------------------------------------------------------------ #
+
+    def add_watch(self, chat_id: str, query: str):
+        now = datetime.utcnow().isoformat()
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO watches (chat_id, query, created_at) VALUES (?,?,?)",
+                (chat_id, query.lower().strip(), now),
+            )
+
+    def remove_watch(self, chat_id: str, query: str) -> bool:
+        with self._conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM watches WHERE chat_id=? AND query=?",
+                (chat_id, query.lower().strip()),
+            )
+            return cur.rowcount > 0
+
+    def get_watches(self, chat_id: str) -> list:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT query, created_at FROM watches WHERE chat_id=? ORDER BY created_at DESC",
+                (chat_id,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def get_all_watches(self) -> list:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT chat_id, query FROM watches"
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------------ #
+    # Restock patterns                                                     #
+    # ------------------------------------------------------------------ #
+
+    def get_restock_patterns(self, site_key: str, product_id: str, days: int = 90) -> dict:
+        """Analyse price_history to find common restock days/hours."""
+        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT recorded_at FROM price_history
+                   WHERE site_key=? AND product_id=? AND in_stock=1 AND recorded_at > ?
+                   ORDER BY recorded_at ASC""",
+                (site_key, product_id, cutoff),
+            ).fetchall()
+
+        times = [r["recorded_at"] for r in rows]
+        if not times:
+            return {"restock_times": [], "common_day": None, "common_hour": None, "total_restocks": 0}
+
+        from collections import Counter
+        day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        day_counts: Counter = Counter()
+        hour_counts: Counter = Counter()
+
+        # Deduplicate — only count transitions (avoid counting every polling cycle)
+        deduped = [times[0]]
+        for t in times[1:]:
+            prev = datetime.fromisoformat(deduped[-1])
+            curr = datetime.fromisoformat(t)
+            if (curr - prev).total_seconds() > 3600:  # >1h gap = new restock event
+                deduped.append(t)
+
+        for t in deduped:
+            dt = datetime.fromisoformat(t)
+            day_counts[dt.weekday()] += 1
+            hour_counts[dt.hour] += 1
+
+        common_day = day_names[day_counts.most_common(1)[0][0]] if day_counts else None
+        common_hour = hour_counts.most_common(1)[0][0] if hour_counts else None
+
+        return {
+            "restock_times": deduped,
+            "common_day": common_day,
+            "common_hour": common_hour,
+            "total_restocks": len(deduped),
+        }

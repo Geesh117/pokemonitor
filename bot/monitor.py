@@ -119,6 +119,7 @@ class Monitor:
         GAME_FILTER = config["keywords"].get("game_filter", [])
 
         self._last_digest_date: Optional[str] = None
+        self._last_calendar_check: Optional[str] = None
         self._running = False
 
         # FX rate cache
@@ -284,34 +285,80 @@ class Monitor:
                         price=product.price,
                     )
 
+    async def _fetch_market_price(self, title: str) -> Optional[float]:
+        """Best-effort TCGPlayer market price fetch — returns CAD or None."""
+        try:
+            from scrapers.tcgplayer_scraper import fetch_tcgplayer_price
+            rate = await self._get_usd_cad_rate()
+            return await asyncio.wait_for(
+                fetch_tcgplayer_price(title, rate), timeout=6
+            )
+        except Exception:
+            return None
+
     async def _send_product_alert(self, product: Product, alert_type: str, change: dict) -> bool:
         img = product.image_url
-        site_key = product.site_key if hasattr(product, "site_key") else ""
+        qty = product.quantity
+        market_price = None
+
+        # Fetch TCGPlayer market price for restock/new product alerts
+        if alert_type in ("restock", "new_product"):
+            market_price = await self._fetch_market_price(product.title)
 
         # Pokemon Center gets a special high-priority alert format
-        if site_key == "pokemon_center" and alert_type in ("restock", "new_product"):
-            return await self.tg.send_pokemon_center_alert(
+        if product.site_key == "pokemon_center" and alert_type in ("restock", "new_product"):
+            sent = await self.tg.send_pokemon_center_alert(
                 product_name=product.title,
                 price=product.price,
                 url=product.url,
                 alert_type=alert_type,
                 image_url=img,
+                quantity=qty,
+                market_price_cad=market_price,
             )
-
-        if alert_type == "restock":
-            return await self.tg.send_restock(
-                product.site_name, product.title, product.price, product.url, img
+        elif alert_type == "restock":
+            sent = await self.tg.send_restock(
+                product.site_name, product.title, product.price, product.url, img,
+                quantity=qty, market_price_cad=market_price,
             )
         elif alert_type == "new_product":
-            return await self.tg.send_new_product(
-                product.site_name, product.title, product.price, product.url, product.in_stock, img
+            sent = await self.tg.send_new_product(
+                product.site_name, product.title, product.price, product.url, product.in_stock, img,
+                quantity=qty, market_price_cad=market_price,
             )
         elif alert_type == "price_drop":
-            return await self.tg.send_price_drop(
+            sent = await self.tg.send_price_drop(
                 product.site_name, product.title,
-                change["old_price"], product.price, product.url, img
+                change["old_price"], product.price, product.url, img,
             )
-        return False
+        else:
+            return False
+
+        # Fire watch alerts for any user watching this product
+        if sent and alert_type in ("restock", "new_product"):
+            await self._fire_watch_alerts(product, qty, market_price)
+
+        return sent
+
+    async def _fire_watch_alerts(self, product: Product, quantity: Optional[int], market_price: Optional[float]):
+        """Send personalised watch alerts to any user watching this product."""
+        try:
+            watches = self.db.get_all_watches()
+            title_lower = product.title.lower()
+            for watch in watches:
+                words = watch["query"].lower().split()
+                if all(w in title_lower for w in words):
+                    await self.tg.send_watch_alert(
+                        chat_id=watch["chat_id"],
+                        product_name=product.title,
+                        site_name=product.site_name,
+                        price=product.price,
+                        url=product.url,
+                        quantity=quantity,
+                        market_price_cad=market_price,
+                    )
+        except Exception as exc:
+            log.debug("Watch alert error: %s", exc)
 
     def _print_test_product(self, product: Product, change: dict):
         status = "IN STOCK" if product.in_stock else "OUT OF STOCK"
@@ -630,18 +677,22 @@ class Monitor:
             await self.tg.send_health_check(statuses)
         log.info("Health check sent (%d sites)", len(statuses))
 
-        # Stale site check
+        # Stale site check — consolidate into one message to avoid spam
         stale_threshold = timedelta(minutes=self.stale_minutes)
         now = datetime.utcnow()
+        stale_sites = []
         for s in statuses:
             last = s.get("last_check")
             if last:
                 last_dt = datetime.fromisoformat(last)
                 if (now - last_dt) > stale_threshold:
-                    msg = f"⚠️ {s['site_name']} hasn't been checked in >{self.stale_minutes} min!"
-                    log.warning(msg)
-                    if not self.test_mode:
-                        await self.tg.send(msg)
+                    log.warning("%s hasn't been checked in >%s min", s['site_name'], self.stale_minutes)
+                    stale_sites.append(s['site_name'])
+        if stale_sites and not self.test_mode:
+            names = "\n".join(f"  • {n}" for n in stale_sites)
+            await self.tg.send(
+                f"⚠️ <b>{len(stale_sites)} site(s) stale</b> (no check in >{self.stale_minutes} min):\n{names}"
+            )
 
     # ------------------------------------------------------------------ #
     # Daily digest                                                         #
@@ -684,6 +735,39 @@ class Monitor:
         await self.check_news()
 
         print("\n=== TEST RUN COMPLETE ===")
+
+    async def _check_release_calendar(self):
+        """Send reminders for set releases 3 days, 1 day, and day-of."""
+        import os
+        calendar = self.config.get("release_calendar", [])
+        if not calendar:
+            return
+        today = datetime.now(EST).date()
+        today_str = today.isoformat()
+        if self._last_calendar_check == today_str:
+            return
+        self._last_calendar_check = today_str
+
+        for entry in calendar:
+            try:
+                rel_date = datetime.strptime(entry["release_date"], "%Y-%m-%d").date()
+                days_until = (rel_date - today).days
+                if days_until not in (0, 1, 3):
+                    continue
+                set_name = entry["name"]
+                flag_path = f"data/.cal_{abs(hash(set_name + today_str + str(days_until))) % 999999}"
+                if os.path.exists(flag_path):
+                    continue
+                if not self.test_mode:
+                    sent = await self.tg.send_release_reminder(
+                        set_name, entry["release_date"], days_until, entry.get("notes", "")
+                    )
+                    if sent:
+                        open(flag_path, "w").close()
+                else:
+                    print(f"  [CALENDAR] {set_name} in {days_until} day(s)")
+            except Exception as exc:
+                log.debug("Calendar check error: %s", exc)
 
     def _get_retail_interval(self) -> float:
         """Return a sleep interval (seconds) based on time of day.
@@ -744,6 +828,9 @@ class Monitor:
 
             # Daily digest
             await self._maybe_send_daily_digest()
+
+            # Release calendar reminders (once per day)
+            await self._check_release_calendar()
 
             # Wait before next full retail cycle — faster during online restock window
             wait = self._get_retail_interval()

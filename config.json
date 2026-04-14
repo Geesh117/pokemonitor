@@ -7,6 +7,26 @@
   "anthropic": {
     "api_key": "SET_VIA_ENV_VAR_ANTHROPIC_API_KEY"
   },
+  "release_calendar": [
+    {
+      "name": "Scarlet & Violet: Journey Together",
+      "release_date": "2025-03-28",
+      "products": ["ETB", "Booster Box", "Booster Bundle", "Tin"],
+      "notes": ""
+    },
+    {
+      "name": "Destined Rivals",
+      "release_date": "2025-05-30",
+      "products": ["ETB", "Booster Box", "Booster Bundle"],
+      "notes": "Upcoming major set — watch Pokemon Center CA and Best Buy"
+    },
+    {
+      "name": "Scarlet & Violet: Black Bolt & White Flare",
+      "release_date": "2025-07-18",
+      "products": ["ETB", "Booster Box", "Booster Bundle", "Tin"],
+      "notes": ""
+    }
+  ],
   "intervals": {
     "retail_min_seconds": 60,
     "retail_max_seconds": 90,
@@ -14,7 +34,7 @@
     "news_max_seconds": 600,
     "health_check_seconds": 3600,
     "daily_digest_hour_est": 9,
-    "stale_site_alert_minutes": 10
+    "stale_site_alert_minutes": 30
   },
   "delays": {
     "between_requests_min": 1,

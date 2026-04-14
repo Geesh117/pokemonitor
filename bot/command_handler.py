@@ -162,6 +162,11 @@ class CommandHandler:
             "/history":   self._cmd_history,
             "/preorders": self._cmd_preorders,
             "/ask":       self._cmd_ask,
+            "/watch":     self._cmd_watch,
+            "/unwatch":   self._cmd_unwatch,
+            "/watching":  self._cmd_watching,
+            "/calendar":  self._cmd_calendar,
+            "/patterns":  self._cmd_patterns,
             "/stores":    self._cmd_stores,
             "/status":    self._cmd_status,
         }
@@ -221,8 +226,19 @@ class CommandHandler:
             "    Active pre-orders across all monitored stores\n\n"
             "🤖 <b>/ask</b> <i>[question]</i>\n"
             "    Ask the bot anything about TCG — uses live data + AI\n"
-            "    Example: <code>/ask is the SPC prismatic in stock anywhere?</code>\n"
-            "    Example: <code>/ask what drops are coming up this weekend?</code>\n\n"
+            "    Example: <code>/ask is the SPC prismatic in stock anywhere?</code>\n\n"
+            "👁 <b>/watch</b> <i>[product]</i>\n"
+            "    Get a special personal ping whenever this goes in stock\n"
+            "    Example: <code>/watch prismatic etb</code>\n\n"
+            "🗑 <b>/unwatch</b> <i>[product]</i>\n"
+            "    Remove a watch\n\n"
+            "📋 <b>/watching</b>\n"
+            "    See all your active watches\n\n"
+            "📅 <b>/calendar</b>\n"
+            "    Upcoming set release dates\n\n"
+            "📊 <b>/patterns</b> <i>[product]</i>\n"
+            "    Analyse when a product typically restocks (day/hour)\n"
+            "    Example: <code>/patterns prismatic etb</code>\n\n"
             "🏪 <b>/stores</b>\n"
             "    All monitored stores and their websites\n\n"
             "📊 <b>/status</b>\n"
@@ -552,6 +568,182 @@ class CommandHandler:
         except Exception as exc:
             log.error("/ask error: %s", exc)
             await self._reply(chat_id, f"⚠️ /ask failed: {exc}")
+
+    # ------------------------------------------------------------------ #
+    # /watch                                                               #
+    # ------------------------------------------------------------------ #
+
+    async def _cmd_watch(self, chat_id: str, args: list):
+        if not args:
+            await self._reply(
+                chat_id,
+                "Usage: /watch <i>[product name]</i>\n"
+                "Example: <code>/watch prismatic etb</code>\n"
+                "Example: <code>/watch op07 booster box</code>\n\n"
+                "You'll get a personal ping whenever a matching product goes in stock.",
+            )
+            return
+        query = " ".join(args).lower().strip()
+        self.db.add_watch(chat_id, query)
+        await self._reply(
+            chat_id,
+            f"👁 <b>Watch added:</b> <code>{query}</code>\n\n"
+            f"You'll get a special alert whenever any monitored store shows this in stock.\n"
+            f"Type /watching to see all your watches.",
+        )
+
+    # ------------------------------------------------------------------ #
+    # /unwatch                                                             #
+    # ------------------------------------------------------------------ #
+
+    async def _cmd_unwatch(self, chat_id: str, args: list):
+        if not args:
+            watches = self.db.get_watches(chat_id)
+            if not watches:
+                await self._reply(chat_id, "👁 You have no active watches.\n\nUse /watch [product] to add one.")
+            else:
+                lines = ["👁 <b>Your watches</b> — reply with /unwatch [name] to remove:\n"]
+                for w in watches:
+                    lines.append(f"  • <code>{w['query']}</code>")
+                await self._reply(chat_id, "\n".join(lines))
+            return
+        query = " ".join(args).lower().strip()
+        removed = self.db.remove_watch(chat_id, query)
+        if removed:
+            await self._reply(chat_id, f"✅ Removed watch: <code>{query}</code>")
+        else:
+            await self._reply(
+                chat_id,
+                f"❌ No watch found for: <code>{query}</code>\n\nType /watching to see your active watches.",
+            )
+
+    # ------------------------------------------------------------------ #
+    # /watching                                                            #
+    # ------------------------------------------------------------------ #
+
+    async def _cmd_watching(self, chat_id: str, args: list):
+        watches = self.db.get_watches(chat_id)
+        if not watches:
+            await self._reply(
+                chat_id,
+                "👁 You have no active watches.\n\n"
+                "Use <code>/watch [product]</code> to get a personal ping when something goes in stock.\n"
+                "Example: <code>/watch prismatic etb</code>",
+            )
+            return
+        lines = [f"👁 <b>Your Watches ({len(watches)})</b>\n"]
+        for w in watches:
+            added = w.get("created_at", "")[:10]
+            lines.append(f"  • <code>{w['query']}</code>  <i>added {added}</i>")
+        lines.append("\nUse /unwatch [name] to remove one.")
+        await self._reply(chat_id, "\n".join(lines))
+
+    # ------------------------------------------------------------------ #
+    # /calendar                                                            #
+    # ------------------------------------------------------------------ #
+
+    async def _cmd_calendar(self, chat_id: str, args: list):
+        from datetime import date
+        calendar = self.config.get("release_calendar", [])
+        if not calendar:
+            await self._reply(chat_id, "📅 No release calendar configured.")
+            return
+
+        today = date.today()
+        upcoming = []
+        for entry in calendar:
+            try:
+                rel_date = datetime.strptime(entry["release_date"], "%Y-%m-%d").date()
+                days_until = (rel_date - today).days
+                upcoming.append((days_until, rel_date, entry))
+            except Exception:
+                continue
+
+        upcoming.sort(key=lambda x: x[0])
+
+        lines = ["📅 <b>Upcoming Set Releases</b>\n"]
+        any_shown = False
+        for days_until, rel_date, entry in upcoming:
+            if days_until < -7:
+                continue  # Skip releases more than a week past
+            any_shown = True
+            date_str = rel_date.strftime("%b %d, %Y")
+            if days_until < 0:
+                timing = f"{abs(days_until)} days ago"
+            elif days_until == 0:
+                timing = "TODAY 🚀"
+            elif days_until == 1:
+                timing = "TOMORROW ⏰"
+            else:
+                timing = f"in {days_until} days"
+            products = " • ".join(entry.get("products", []))
+            notes = entry.get("notes", "")
+            lines.append(f"🃏 <b>{entry['name']}</b> — {date_str} ({timing})")
+            if products:
+                lines.append(f"    {products}")
+            if notes:
+                lines.append(f"    <i>{notes}</i>")
+            lines.append("")
+
+        if not any_shown:
+            lines.append("No upcoming releases in the calendar.")
+
+        lines.append("<i>Bot sends automatic reminders 3 days, 1 day, and day-of each release.</i>")
+        await self._reply(chat_id, "\n".join(lines).strip())
+
+    # ------------------------------------------------------------------ #
+    # /patterns                                                            #
+    # ------------------------------------------------------------------ #
+
+    async def _cmd_patterns(self, chat_id: str, args: list):
+        if not args:
+            await self._reply(
+                chat_id,
+                "Usage: /patterns <i>[product name]</i>\n"
+                "Example: <code>/patterns prismatic etb</code>\n\n"
+                "Shows what day and time a product typically restocks based on historical data.",
+            )
+            return
+
+        query = " ".join(args).lower()
+        products = self.db.search_products(query, limit=5)
+
+        if not products:
+            await self._reply(chat_id, f"📊 No products found matching: <b>{query}</b>")
+            return
+
+        lines = [f"📊 <b>Restock Patterns: {query}</b>\n"]
+        any_data = False
+
+        for p in products[:4]:
+            patterns = self.db.get_restock_patterns(p["site_key"], p["product_id"])
+            total = patterns.get("total_restocks", 0)
+            if total == 0:
+                continue
+            any_data = True
+            common_day = patterns.get("common_day")
+            common_hour = patterns.get("common_hour")
+            title_short = (p.get("title") or query)[:60]
+
+            lines.append(f"🏪 <b>{p['site_name']}</b> — {title_short}")
+            lines.append(f"   📈 {total} restock event(s) tracked")
+            if common_day:
+                lines.append(f"   📆 Most common day: <b>{common_day}</b>")
+            if common_hour is not None:
+                hour_str = datetime(2000, 1, 1, common_hour).strftime("%-I%p") if common_hour > 0 else "midnight"
+                lines.append(f"   🕐 Most common hour: <b>{hour_str} UTC</b> (~{(common_hour - 4) % 24}:00 EST)")
+            lines.append("")
+
+        if not any_data:
+            await self._reply(
+                chat_id,
+                f"📊 Not enough restock history yet for: <b>{query}</b>\n\n"
+                f"The bot needs to observe a few restock cycles before patterns emerge. Check back later.",
+            )
+            return
+
+        lines.append("<i>Based on price history data — more data = more accurate patterns.</i>")
+        await self._reply(chat_id, "\n".join(lines).strip())
 
     # ------------------------------------------------------------------ #
     # /stores                                                              #

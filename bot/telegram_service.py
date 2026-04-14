@@ -97,14 +97,20 @@ class TelegramService:
         url: str,
         alert_type: str = "restock",
         image_url: Optional[str] = None,
+        quantity: Optional[int] = None,
+        market_price_cad: Optional[float] = None,
     ) -> bool:
         price_str = f"${price:.2f} CAD" if price else "N/A"
         label = "RESTOCK" if alert_type == "restock" else "NEW LISTING"
+        qty_line = f"📊 <b>Stock:</b> {quantity} units\n" if quantity else ""
+        market_line = f"📈 <b>TCGPlayer:</b> ~${market_price_cad:.2f} CAD\n" if market_price_cad else ""
         msg = (
             f"🚨🚨 <b>POKEMON CENTER CA — {label}</b> 🚨🚨\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📦 <b>{product_name}</b>\n"
             f"💰 <b>Price:</b> {price_str}\n"
+            f"{qty_line}"
+            f"{market_line}"
             f"🔗 <b>BUY NOW:</b> {url}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"⚡ Ships direct from Pokemon — act fast!\n"
@@ -119,13 +125,19 @@ class TelegramService:
         price: Optional[float],
         url: str,
         image_url: Optional[str] = None,
+        quantity: Optional[int] = None,
+        market_price_cad: Optional[float] = None,
     ) -> bool:
         price_str = f"${price:.2f} CAD" if price else "N/A"
+        qty_line = f"📊 <b>Stock:</b> {quantity} units\n" if quantity else ""
+        market_line = f"📈 <b>TCGPlayer:</b> ~${market_price_cad:.2f} CAD\n" if market_price_cad else ""
         msg = (
             f"🟢 <b>RESTOCK ALERT</b>\n"
             f"🏪 <b>Store:</b> {site_name}\n"
             f"📦 <b>Product:</b> {product_name}\n"
             f"💰 <b>Price:</b> {price_str}\n"
+            f"{qty_line}"
+            f"{market_line}"
             f"✅ <b>Status:</b> In Stock\n"
             f"🔗 <b>URL:</b> {url}\n"
             f"🕐 <b>Time:</b> {_now_est()}"
@@ -140,14 +152,20 @@ class TelegramService:
         url: str,
         in_stock: bool,
         image_url: Optional[str] = None,
+        quantity: Optional[int] = None,
+        market_price_cad: Optional[float] = None,
     ) -> bool:
         price_str = f"${price:.2f} CAD" if price else "N/A"
         stock_str = "✅ In Stock" if in_stock else "❌ Out of Stock"
+        qty_line = f"📊 <b>Stock:</b> {quantity} units\n" if quantity else ""
+        market_line = f"📈 <b>TCGPlayer:</b> ~${market_price_cad:.2f} CAD\n" if market_price_cad else ""
         msg = (
             f"🆕 <b>NEW PRODUCT LISTED</b>\n"
             f"🏪 <b>Store:</b> {site_name}\n"
             f"📦 <b>Product:</b> {product_name}\n"
             f"💰 <b>Price:</b> {price_str}\n"
+            f"{qty_line}"
+            f"{market_line}"
             f"✅ <b>Status:</b> {stock_str}\n"
             f"🔗 <b>URL:</b> {url}\n"
             f"🕐 <b>Time:</b> {_now_est()}"
@@ -235,6 +253,62 @@ class TelegramService:
             f"{price_line}"
             f"🔗 <b>URL:</b> {url}\n"
             f"🕐 <b>Time:</b> {_now_est()}"
+        )
+        return await self.send(msg)
+
+    async def send_watch_alert(
+        self,
+        chat_id: str,
+        product_name: str,
+        site_name: str,
+        price: Optional[float],
+        url: str,
+        quantity: Optional[int] = None,
+        market_price_cad: Optional[float] = None,
+    ) -> bool:
+        """Send a personalised watch alert to a specific user (not broadcast)."""
+        price_str = f"${price:.2f} CAD" if price else "N/A"
+        qty_line = f"📊 <b>Stock:</b> {quantity} units\n" if quantity else ""
+        market_line = f"📈 <b>TCGPlayer:</b> ~${market_price_cad:.2f} CAD\n" if market_price_cad else ""
+        msg = (
+            f"👁 <b>WATCH ALERT</b>\n"
+            f"📦 <b>{product_name}</b>\n"
+            f"🏪 <b>Store:</b> {site_name}\n"
+            f"💰 <b>Price:</b> {price_str}\n"
+            f"{qty_line}"
+            f"{market_line}"
+            f"🔗 {url}\n"
+            f"🕐 {_now_est()}"
+        )
+        return await self._send_to(chat_id, msg)
+
+    async def send_to_chat(self, chat_id: str, text: str) -> bool:
+        return await self._send_to(chat_id, text)
+
+    async def send_release_reminder(
+        self,
+        set_name: str,
+        release_date: str,
+        days_until: int,
+        notes: str = "",
+    ) -> bool:
+        if days_until == 0:
+            label = "RELEASES TODAY"
+            icon = "🚀"
+        elif days_until == 1:
+            label = "RELEASES TOMORROW"
+            icon = "⏰"
+        else:
+            label = f"RELEASES IN {days_until} DAYS"
+            icon = "📅"
+        notes_line = f"ℹ️ {notes}\n" if notes else ""
+        msg = (
+            f"{icon} <b>{label}</b>\n"
+            f"🃏 <b>Set:</b> {set_name}\n"
+            f"📆 <b>Date:</b> {release_date}\n"
+            f"{notes_line}"
+            f"🏪 Watch: Pokemon Center CA, Best Buy, Indigo, 401 Games\n"
+            f"🕐 {_now_est()}"
         )
         return await self.send(msg)
 

@@ -55,6 +55,7 @@ class Product:
     price: Optional[float]   # CAD, None if unknown
     in_stock: bool
     image_url: Optional[str] = None
+    quantity: Optional[int] = None   # Units in stock (None = unknown)
     raw: dict = field(default_factory=dict)
 
 

@@ -97,6 +97,16 @@ class ShopifyScraper(BaseScraper):
                 images = item.get("images", [])
                 image_url = images[0].get("src") if images else None
 
+                # Sum inventory across available variants (None if tracking disabled)
+                total_qty = 0
+                qty_tracked = False
+                for v in available_variants:
+                    inv = v.get("inventory_quantity")
+                    if inv is not None and int(inv) > 0:
+                        total_qty += int(inv)
+                        qty_tracked = True
+                quantity = total_qty if qty_tracked else None
+
                 products.append(Product(
                     site_key=site_key,
                     site_name=site_name,
@@ -106,6 +116,7 @@ class ShopifyScraper(BaseScraper):
                     price=price,
                     in_stock=in_stock,
                     image_url=image_url,
+                    quantity=quantity,
                     raw=item,
                 ))
 
